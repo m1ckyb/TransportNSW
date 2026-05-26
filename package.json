@@ -1,0 +1,25 @@
+{
+  "name": "transportnsw",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
+    "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/m1ckyb/TransportNSW.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/m1ckyb/TransportNSW/issues"
+  },
+  "homepage": "https://github.com/m1ckyb/TransportNSW#readme",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

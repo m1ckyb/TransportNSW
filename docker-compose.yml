@@ -1,0 +1,27 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "3001:3001"
+    volumes:
+      - transport-data:/app/dist/data
+      - transport-uploads:/app/dist/uploads
+    env_file:
+      - ./backend/.env
+    environment:
+      - TZ=Australia/Sydney
+    restart: always
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "8080:80"
+    environment:
+      - TZ=Australia/Sydney
+    restart: always
+
+volumes:
+  transport-data:
+  transport-uploads:
