@@ -3,12 +3,16 @@ import multer from 'multer';
 import path from 'path';
 import { processGtfsZip } from '../gtfs-parser';
 import fs from 'fs';
+import axios from 'axios';
+import { downloadStaticSchedule } from '../tfnsw';
 import { 
   getMonitoredStops, addMonitoredStop, removeMonitoredStop, 
   getMonitoredRoutes, addMonitoredRoute, removeMonitoredRoute,
-  searchStops, searchRoutes
+  getMonitoredCarParks, addMonitoredCarPark, removeMonitoredCarPark,
+  searchStops, searchRoutes,
+  getAllSettings, updateSettings
 } from '../db';
-import { unpublishStopDeparture } from '../mqtt';
+import { unpublishStopDeparture, unpublishCarParkOccupancy, cleanupStaleTopics, connectMqtt } from '../mqtt';
 
 const router = Router();
 const uploadsDir = path.resolve(__dirname, '../uploads/');
@@ -36,10 +40,9 @@ router.get('/config/routes', (req, res) => res.json(getMonitoredRoutes()));
 
 // Temporary MQTT Cleanup Route
 router.post('/mqtt-cleanup', (req, res) => {
-  const staleIds = ['200060', '252610', '2526171', '2526172', '2560691', '2560692', '2576341', '2576342', 'null'];
   console.log('Starting MQTT manual cleanup...');
-  staleIds.forEach(id => unpublishStopDeparture(id));
-  res.json({ message: 'Cleanup signals sent for 9 stale entities' });
+  cleanupStaleTopics();
+  res.json({ message: 'Legacy discovery topics cleared' });
 });
 
 router.post('/config/routes', (req, res) => {
@@ -52,6 +55,69 @@ router.delete('/config/routes/:routeId', (req, res) => {
   console.log('Removing monitored route:', req.params.routeId);
   removeMonitoredRoute(req.params.routeId);
   res.json({ message: 'Route removed' });
+});
+
+// Car Park Config
+router.get('/config/carparks', (req, res) => res.json(getMonitoredCarParks()));
+router.post('/config/carparks', (req, res) => {
+  const { facilityId, facilityName } = req.body;
+  if (!facilityId) return res.status(400).json({ error: 'Missing facilityId' });
+  addMonitoredCarPark(facilityId, facilityName);
+  res.json({ message: 'Car park added' });
+});
+router.delete('/config/carparks/:facilityId', (req, res) => {
+  removeMonitoredCarPark(req.params.facilityId);
+  unpublishCarParkOccupancy(req.params.facilityId);
+  res.json({ message: 'Car park removed' });
+});
+
+// App Settings Routes
+router.get('/settings', (req, res) => res.json(getAllSettings()));
+router.post('/settings', (req, res) => {
+  console.log('Updating app settings:', req.body);
+  updateSettings(req.body);
+  // Re-connect MQTT with new settings
+  connectMqtt();
+  res.json({ message: 'Settings updated' });
+});
+
+router.post('/test-key', async (req, res) => {
+  const { apikey } = req.body;
+  if (!apikey) return res.status(400).json({ error: 'Missing apikey' });
+
+  try {
+    const testUrl = 'https://api.transport.nsw.gov.au/v2/gtfs/alerts/all';
+    const response = await axios.get(testUrl, {
+      headers: { 'Authorization': `apikey ${apikey}` },
+      responseType: 'arraybuffer',
+      validateStatus: () => true // Catch all statuses
+    });
+    console.log(`Test key status: ${response.status}`);
+    res.json({ status: response.status });
+  } catch (err: any) {
+    res.json({ status: err.response?.status || 500, error: err.message });
+  }
+});
+
+router.post('/sync-gtfs', async (req, res) => {
+  const mode = req.body.mode || 'sydneytrains'; 
+  const zipPath = path.join(uploadsDir, `${mode}_schedule.zip`);
+  
+  // Set response timeout to 15 minutes as this takes a while
+  req.setTimeout(900000);
+  res.setTimeout(900000);
+
+  try {
+    await downloadStaticSchedule(mode, zipPath);
+    console.log(`Successfully downloaded ${mode} GTFS. Starting ingestion...`);
+    await processGtfsZip(zipPath);
+    console.log(`Finished ingesting ${mode} GTFS data.`);
+    if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath); // Cleanup
+    res.json({ message: 'Sync and ingestion completed successfully.' });
+  } catch (err: any) {
+    console.error(`Error during automated GTFS sync for ${mode}:`, err);
+    res.status(500).json({ error: 'Sync failed: ' + err.message });
+  }
 });
 
 // Search Routes

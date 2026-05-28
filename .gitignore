@@ -39,3 +39,4 @@ backend/src/uploads/*
 .idea/
 *.swp
 *.swo
+inspector_venv/

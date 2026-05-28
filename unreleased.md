@@ -1,6 +1,28 @@
 # Unreleased Changes
 
 ### Added
+- Single Line Crossing Tracker (SigView > Crossings) for the Coalcliff-Scarborough bottleneck, utilizing granular signalling block IDs (e.g., 627, 632-629) for high-precision tracking.
+- Intelligent occupancy logic for the single line, distinguishing between "IN SECTION", "WAITING", and "APPROACHING" based on real-time track occupancy and holding points.
+- Freight & Unscheduled service tracking: Integration of real-time vehicle positions to track non-passenger trains (e.g., 9122, MC52) through the monitored single-line sections.
+- Global API Health Indicator in the main navigation bar, showing real-time status and count of healthy TfNSW API keys with color-coded alerts (Green/Orange/Red).
+- Global 24h clock in the main navigation bar, centralized for all views.
+- Siding and Refuge tracking for the South Coast line complex, with specific status labels ("IN SIDING", "IN REFUGE") for trains cleared from the main line.
+- Backend endpoint `/api/track/sc` to process and normalize South Coast track-specific location data from VehiclePosition feeds.
+- Car Park Occupancy API integration: Monitoring real-time availability for Transport Park&Ride facilities.
+- Dedicated "Parking" tab to view car park availability, occupancy percentages, and status (Available, Almost Full, Full).
+- Home Assistant MQTT integration for car parks: Real-time sensors for available spaces and occupancy attributes.
+- Dashboard tab with overview widgets showing the next 3 trains for all monitored stations.
+- Auto-Sync feature to download static "For Realtime" GTFS schedules directly from TfNSW API.
+- Live API Key Testing button in Settings UI to display precise HTTP status codes (e.g., 200, 429).
+- Handover Detection logic to visually flag "Divides/Amalgamates" operations on the departure board.
+- SigView: A signaller's side-by-side dashboard for monitoring two stations simultaneously.
+- UI-based configuration management for API keys and MQTT settings in the Settings tab.
+- Persistent app settings stored in SQLite.
+- API key rotation support for up to 5 keys to mitigate rate limiting, with automatic 429 (Too Many Requests) health tracking and cooldowns.
+- Manual refresh button on the dashboard header with visual loading state.
+- Detailed train information including Run Numbers and Set Type/Number.
+- Collapsible stopping patterns for every departure on the board.
+- Standalone Python diagnostic script `inspect_run.py` for deep GTFS inspection.
 - Initial project structure with Node.js backend and React frontend.
 - SQLite database integration for static GTFS data.
 - GTFS ZIP file parser with streaming support for large files.
@@ -14,16 +36,32 @@
 - Timezone support for accurate Sydney-based timing.
 
 ### Changed
-- Migrated from v1 to v2 TfNSW API for improved reliability.
+- Refined the "In Section" status to strictly apply only to the physical single-track blocks (642, 640-633, 632-629, 627) between Scarborough and Coalcliff.
+- Updated tracking logic to force approach sections (665, 667) to always display as "APPROACHING" to prevent premature "WAITING" flags.
+- Redesigned the main navigation bar to accommodate the global clock and health monitoring indicators.
+- Improved live data reliability by implementing fuzzy matching for trip updates using Run Numbers, resolving issues where static and realtime trip IDs diverge.
+- Optimized backend performance and reduced TfNSW API pressure by implementing a 30-second in-memory cache for trip updates.
+- Reduced the departure board refresh interval from 5 minutes to 60 seconds for a more responsive experience.
+- Optimized Dashboard widget layout to a two-line format, moving scheduled time and meta-info under the destination to prevent text truncation.
+- Upgraded the Departure Board to a "Smart Hybrid" approach, prioritizing live GPS feeds but seamlessly falling back to the database schedule.
+- Migrated from v1 to v2 TfNSW API for improved reliability, with intelligent fallback to v1 for regional NSW TrainLink feeds.
 - Optimized GTFS ingestion using streaming CSV parsing and background processing.
-- Refactored departure board to prioritize real-time feed with schedule fallback.
 - Enhanced alerts UI with collapsible details and formatted dates.
 - Grouped network alerts by line for better organization.
 
 ### Fixed
+- Fixed run number extraction for non-timetabled services, ensuring IDs like "NonTimetabled.MC52" correctly display as "MC52" in the tracking queue.
+- Disabled experimental service type classification (Express/All Stations) to maintain UI stability while refining heuristics.
+- Fixed API Rate Limit (429) exhaustion caused by concurrent departure board requests. Implemented a Promise-based lock in the backend to ensure simultaneous requests from views like 'Crossings' reuse a single in-flight API call instead of spamming TfNSW servers.
+- Resolved issue where some trains (like C758) would not show a "Live" tag because the real-time feed only provided a delay value without an explicit predicted timestamp. The system now correctly applies these delays to the scheduled time.
+- Fixed SHL (Southern Highlands Line) trains showing "Empty Train" by implementing a destination fallback to the last stop in the service.
+- Shortened stop names in Dashboard widgets by removing " Station" to prevent text truncation.
+- Fixed Auto-Sync endpoint using the incorrect v2 API and added synchronous 15-minute timeout to prevent UI hanging.
+- Fixed Handover Detection crashing when TfNSW sends empty stop arrays in the live feed.
+- Fixed missing "Empty Coaching Stock" (ECS) train errors by utilizing schedule look-backs when live tracking drops off.
 - Resolved 'Invalid Date' and 'NaN min' errors via backend time normalization.
 - Fixed 'Stop null' issue by handling BOM characters in GTFS files.
-- Resolved large file upload failures through Cloudflare/Traefik via chunking and increased timeouts.
+- Resolved large file upload failures through Cloudflare/Traefik via 25MB chunking, 500ms throttling, and automatic 3-strike retry logic.
 - Fixed 'Ghost trains' by implementing GTFS calendar service exceptions.
-- Resolved duplication issues on departure board using group-by logic.
-- Fixed MQTT sensor data corruption by ensuring standard 24h time strings.
+- Resolved duplication issues on departure board using strict date-range group-by logic.
+- Fixed MQTT sensor data corruption by clearing retained states and ensuring standard `due` duration classes and 24h time strings.

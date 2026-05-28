@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { DepartureBoard } from '../components/DepartureBoard';
 import { AlertsPanel } from '../components/AlertsPanel';
 import { api } from '../services/api';
+import { RefreshCw } from 'lucide-react';
 
 interface DashboardProps {
   forceView?: 'dashboard' | 'trackwork' | 'alerts';
@@ -26,27 +27,47 @@ export const Dashboard: React.FC<DashboardProps> = ({ forceView = 'dashboard' })
     }
   };
 
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [departureRes, alertRes] = await Promise.all([
+        stopId ? api.getDepartures(stopId) : Promise.resolve({ departures: [] }),
+        api.getAlerts()
+      ]);
+      setData(departureRes);
+      setAlerts(Array.isArray(alertRes?.alerts) ? alertRes.alerts : []);
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const [departureRes, alertRes] = await Promise.all([
-          stopId ? api.getDepartures(stopId) : Promise.resolve({ departures: [] }),
-          api.getAlerts()
-        ]);
-        setData(departureRes);
-        setAlerts(Array.isArray(alertRes?.alerts) ? alertRes.alerts : []);
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-      } finally {
-        setLoading(false);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchData();
       }
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 30000); // Refresh every 30s
-    return () => clearInterval(interval);
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchData();
+      }
+    }, 60000); // Refresh every 60 seconds
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [stopId]);
+
+  const handleManualRefresh = async () => {
+    fetchData();
+  };
 
   // Filter alerts based on forceView
   const filteredAlerts = alerts.filter(a => {
@@ -60,11 +81,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ forceView = 'dashboard' })
   return (
     <div className="dashboard-container full-screen">
       <header className="app-header">
-        <h1>
-          {forceView === 'dashboard' && 'Departures'}
-          {forceView === 'trackwork' && 'Network Trackwork'}
-          {forceView === 'alerts' && 'Service Alerts'}
-        </h1>
+        <div className="header-left">
+          <h1>
+            {forceView === 'dashboard' && 'Departures'}
+            {forceView === 'trackwork' && 'Network Trackwork'}
+            {forceView === 'alerts' && 'Service Alerts'}
+          </h1>
+          <button 
+            className={`refresh-btn ${loading ? 'spinning' : ''}`} 
+            onClick={handleManualRefresh}
+            disabled={loading}
+            title="Manual Refresh"
+          >
+            <RefreshCw size={18} />
+          </button>
+        </div>
         {forceView === 'dashboard' && (
           <div className="stop-selector">
             <label>Station: </label>

@@ -21,6 +21,16 @@ export async function processGtfsZip(zipPath: string) {
 
   console.log('Extraction complete.');
 
+  // Clear static GTFS tables to prevent overlapping/orphaned sequence data between updates
+  console.log('Clearing old GTFS data from database to prevent overlaps...');
+  db.prepare('DELETE FROM stop_times').run();
+  db.prepare('DELETE FROM trips').run();
+  db.prepare('DELETE FROM routes').run();
+  db.prepare('DELETE FROM stops').run();
+  db.prepare('DELETE FROM calendar').run();
+  db.prepare('DELETE FROM calendar_dates').run();
+  console.log('Old GTFS data cleared.');
+
   const files = [
     { name: 'stops.txt', table: 'stops', query: 'INSERT OR REPLACE INTO stops (stop_id, stop_name, stop_lat, stop_lon, location_type, parent_station) VALUES (?, ?, ?, ?, ?, ?)', params: (r: any) => [r.stop_id, r.stop_name, r.stop_lat, r.stop_lon, r.location_type, r.parent_station] },
     { name: 'routes.txt', table: 'routes', query: 'INSERT OR REPLACE INTO routes (route_id, route_short_name, route_long_name, route_type) VALUES (?, ?, ?, ?)', params: (r: any) => [r.route_id, r.route_short_name, r.route_long_name, r.route_type] },

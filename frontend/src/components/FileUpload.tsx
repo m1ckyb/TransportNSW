@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { api } from '../services/api';
-import { Upload, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Upload, CheckCircle, AlertCircle, Loader2, DownloadCloud } from 'lucide-react';
 
 export const FileUpload: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<'idle' | 'uploading' | 'processing' | 'success' | 'error'>('idle');
   const [progress, setProgress] = useState(0);
   const [message, setMessage] = useState('');
+  const [syncMode, setSyncMode] = useState('sydneytrains');
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -14,6 +15,20 @@ export const FileUpload: React.FC = () => {
       setStatus('idle');
       setMessage('');
       setProgress(0);
+    }
+  };
+
+  const handleSync = async () => {
+    setStatus('processing');
+    setMessage('Downloading and ingesting... This may take several minutes.');
+    try {
+      await api.syncGtfs(syncMode);
+      setStatus('success');
+      setMessage('GTFS data synchronized and processed successfully!');
+    } catch (error) {
+      console.error('Sync trigger error:', error);
+      setStatus('error');
+      setMessage('Failed to sync GTFS data. Check backend logs.');
     }
   };
 
@@ -65,7 +80,36 @@ export const FileUpload: React.FC = () => {
 
   return (
     <div className="file-upload-card">
-      <h3>Upload Static GTFS ZIP</h3>
+      <h3>GTFS Data Management</h3>
+      
+      <div className="sync-section" style={{ marginBottom: '2rem', paddingBottom: '1.5rem', borderBottom: '1px solid #334155' }}>
+        <h4>Auto-Sync from TfNSW</h4>
+        <p>Download the "For Realtime" static GTFS bundle directly from the API.</p>
+        <div className="upload-input-group">
+          <select 
+            value={syncMode} 
+            onChange={(e) => setSyncMode(e.target.value)}
+            className="file-label"
+            style={{ appearance: 'auto' }}
+          >
+            <option value="sydneytrains">Sydney Trains (inc. NSW TrainLink)</option>
+            <option value="buses">Buses</option>
+            <option value="ferries">Ferries</option>
+            <option value="lightrail">Light Rail</option>
+            <option value="sydneymetro">Sydney Metro</option>
+          </select>
+          <button 
+            onClick={handleSync} 
+            disabled={status === 'processing'}
+            className="upload-button"
+          >
+            {status === 'processing' ? <Loader2 className="spin" /> : <DownloadCloud size={18} />}
+            Sync
+          </button>
+        </div>
+      </div>
+
+      <h4>Manual Upload</h4>
       <p>Upload a .zip file containing stops.txt, routes.txt, etc.</p>
       
       <div className="upload-input-group">

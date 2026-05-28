@@ -1,21 +1,51 @@
 import mqtt from 'mqtt';
 import dotenv from 'dotenv';
+import { getSetting } from './db';
 
 dotenv.config();
 
-const MQTT_URL = process.env.MQTT_URL || 'mqtt://localhost';
-const MQTT_USER = process.env.MQTT_USER;
-const MQTT_PASS = process.env.MQTT_PASS;
 const TOPIC_PREFIX = 'transportnsw';
-
 let client: mqtt.MqttClient | null = null;
 
-export function connectMqtt() {
-  const options: any = {};
-  if (MQTT_USER) options.username = MQTT_USER;
-  if (MQTT_PASS) options.password = MQTT_PASS;
+export function cleanupStaleTopics() {
+  if (!client || !client.connected) return;
 
-  client = mqtt.connect(MQTT_URL, options);
+  const monitoredStops = ['200060', '252610', '2526171', '2526172', '2560691', '2560692', '2576341', '2576342'];
+  const facilityIds = ['15', '16', '17', '19', '20', '39']; // Common ones
+
+  console.log('MQTT: Clearing legacy discovery topics...');
+
+  // 1. Clear old stops format (sensor/stop_ID)
+  monitoredStops.forEach(id => {
+    client?.publish(`homeassistant/sensor/stop_${id}/next_departure/config`, '', { retain: true });
+  });
+
+  // 2. Clear old carpark format (sensor/carpark_ID)
+  facilityIds.forEach(id => {
+    client?.publish(`homeassistant/sensor/carpark_${id}/occupancy/config`, '', { retain: true });
+  });
+
+  // 3. Clear intermediate format (sensor/tfnsw_stop_ID without hub prefix)
+  monitoredStops.forEach(id => {
+    client?.publish(`homeassistant/sensor/tfnsw_stop_${id}/next_departure/config`, '', { retain: true });
+  });
+}
+
+export function connectMqtt() {
+  const url = getSetting('MQTT_URL', process.env.MQTT_URL || 'mqtt://localhost');
+  const user = getSetting('MQTT_USER', process.env.MQTT_USER || '');
+  const pass = getSetting('MQTT_PASS', process.env.MQTT_PASS || '');
+
+  const options: any = {};
+  if (user) options.username = user;
+  if (pass) options.password = pass;
+
+  if (client) {
+    client.end();
+  }
+
+  console.log(`MQTT: Connecting to ${url}...`);
+  client = mqtt.connect(url, options);
 
   client.on('connect', () => {
     console.log('Connected to MQTT broker');
@@ -29,17 +59,16 @@ export function connectMqtt() {
 export function publishStopDeparture(stopId: string, stopName: string, departures: any[]) {
   if (!client || !client.connected) return;
 
-  const deviceId = `stop_${stopId}`;
-  const discoveryTopic = `homeassistant/sensor/${deviceId}/next_departure/config`;
+  const discoveryTopic = `homeassistant/sensor/tfnsw_stop_${stopId}/next_departure/config`;
   
   const config = {
-    name: `${stopName} Next Departure`,
+    name: `${stopName}`,
     state_topic: `${TOPIC_PREFIX}/stop/${stopId}/state`,
-    unique_id: `tfnsw_${stopId}_next_departure`,
+    unique_id: `v2_hub_tfnsw_${stopId}_next_departure`,
     device: {
-      identifiers: [deviceId],
-      name: `TransportNSW Stop ${stopId}`,
-      model: 'Departure Board',
+      identifiers: ["transportnsw_hub"],
+      name: "TransportNSW",
+      model: 'Transport Monitor',
       manufacturer: 'TransportNSW Integration'
     },
     value_template: "{{ value_json.due }}",
@@ -104,11 +133,68 @@ export function publishStopDeparture(stopId: string, stopName: string, departure
   }
 }
 
+export function publishCarParkOccupancy(facilityId: string, facilityName: string, data: any) {
+  if (!client || !client.connected) return;
+
+  const discoveryTopic = `homeassistant/sensor/tfnsw_carpark_${facilityId}/occupancy/config`;
+  
+  const config = {
+    name: `${facilityName} Parking`,
+    state_topic: `${TOPIC_PREFIX}/carpark/${facilityId}/state`,
+    unique_id: `v2_hub_tfnsw_carpark_${facilityId}_occupancy`,
+    device: {
+      identifiers: ["transportnsw_hub"],
+      name: "TransportNSW",
+      model: 'Transport Monitor',
+      manufacturer: 'TransportNSW Integration'
+    },
+    value_template: "{{ value_json.available }}",
+    unit_of_measurement: "spaces",
+    state_class: "measurement",
+    icon: "mdi:car-parking",
+    json_attributes_topic: `${TOPIC_PREFIX}/carpark/${facilityId}/attributes`
+  };
+
+  client.publish(discoveryTopic, JSON.stringify(config), { retain: true });
+
+  const stateTopic = `${TOPIC_PREFIX}/carpark/${facilityId}/state`;
+  const attrTopic = `${TOPIC_PREFIX}/carpark/${facilityId}/attributes`;
+
+  const spots = parseInt(data.spots) || 0;
+  const total = parseInt(data.occupancy?.total) || 0;
+  const available = Math.max(0, spots - total);
+  const percent = spots > 0 ? Math.round((total / spots) * 100) : 0;
+
+  client.publish(stateTopic, JSON.stringify({
+    available: available,
+    total: total,
+    spots: spots,
+    percent: percent
+  }), { retain: true });
+
+  client.publish(attrTopic, JSON.stringify({
+    facility_id: facilityId,
+    friendly_name: facilityName,
+    suburb: data.location?.suburb,
+    address: data.location?.address,
+    last_updated: data.MessageDate || new Date().toISOString(),
+    attribution: 'Data provided by Transport NSW'
+  }), { retain: true });
+}
+
+export function unpublishCarParkOccupancy(facilityId: string) {
+  if (!client || !client.connected) return;
+
+  const discoveryTopic = `homeassistant/sensor/tfnsw_carpark_${facilityId}/occupancy/config`;
+  
+  client.publish(discoveryTopic, '', { retain: true });
+  console.log(`Unpublished MQTT entity for car park: ${facilityId}`);
+}
+
 export function unpublishStopDeparture(stopId: string) {
   if (!client || !client.connected) return;
 
-  const deviceId = `stop_${stopId}`;
-  const discoveryTopic = `homeassistant/sensor/${deviceId}/next_departure/config`;
+  const discoveryTopic = `homeassistant/sensor/tfnsw_stop_${stopId}/next_departure/config`;
   
   // Sending an empty payload to the discovery topic removes the entity from Home Assistant
   client.publish(discoveryTopic, '', { retain: true });

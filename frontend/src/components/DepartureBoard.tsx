@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import { Clock, ChevronDown, ChevronUp, Info, AlertTriangle } from 'lucide-react';
 
 interface StopUpdate {
   stopId: string;
@@ -18,14 +18,17 @@ interface Departure {
   delay: number;
   isRealtime: boolean;
   stoppingPattern: StopUpdate[];
+  relatedServices?: string[];
+  activeAlerts?: string[];
 }
 
 interface DepartureBoardProps {
   stopName: string;
   departures: Departure[];
+  hideHeader?: boolean;
 }
 
-export const DepartureBoard: React.FC<DepartureBoardProps> = ({ stopName, departures }) => {
+export const DepartureBoard: React.FC<DepartureBoardProps> = ({ stopName, departures, hideHeader }) => {
   const [expandedTrips, setExpandedTrips] = useState<Set<string>>(new Set());
 
   const toggleTrip = (tripId: string) => {
@@ -41,7 +44,7 @@ export const DepartureBoard: React.FC<DepartureBoardProps> = ({ stopName, depart
   const formatTime = (timestamp: number) => {
     if (!timestamp) return '---';
     const date = new Date(timestamp);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
   };
 
   const getMinutesAway = (timestamp: number) => {
@@ -52,12 +55,14 @@ export const DepartureBoard: React.FC<DepartureBoardProps> = ({ stopName, depart
 
   return (
     <div className="departure-board">
-      <div className="board-header">
-        <h2>{stopName || 'Select a Stop'}</h2>
-        <div className="current-time">
-          <Clock size={18} /> {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+      {!hideHeader && (
+        <div className="board-header">
+          <h2>{stopName || 'Select a Stop'}</h2>
+          <div className="current-time">
+            <Clock size={18} /> {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="departures-list">
         {departures.length === 0 ? (
@@ -70,11 +75,25 @@ export const DepartureBoard: React.FC<DepartureBoardProps> = ({ stopName, depart
                 <div className="departure-item" onClick={() => toggleTrip(dep.tripId)}>
                   <div className="route-badge">{dep.routeShortName}</div>
                   <div className="departure-main">
-                    <div className="destination">{dep.headsign}</div>
+                    <div className="destination" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      {dep.headsign}
+                      {dep.isRealtime && <span className="live-tag">LIVE</span>}
+                      {dep.activeAlerts && dep.activeAlerts.length > 0 && (
+                        <div className="alert-icon-wrapper" title={dep.activeAlerts.join('\n\n')}>
+                          <AlertTriangle size={16} color="#ffcc00" />
+                        </div>
+                      )}
+                    </div>
                     <div className="trip-meta">
                       <span className="run-number">Run: {dep.runNumber}</span>
                       <span className="set-info">Set: {dep.setInfo}</span>
                     </div>
+                    {dep.relatedServices && dep.relatedServices.length > 0 && (
+                      <div className="related-services">
+                        <Info size={12} />
+                        <span>{dep.relatedServices.join(', ')}</span>
+                      </div>
+                    )}
                   </div>
                   <div className="timing">
                     <div className="time">{formatTime(dep.time)}</div>

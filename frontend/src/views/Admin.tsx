@@ -1,6 +1,8 @@
 import React from 'react';
 import { FileUpload } from '../components/FileUpload';
 import { ConfigManager } from '../components/ConfigManager';
+import { CarParkManager } from '../components/CarParkManager';
+import { SystemSettings } from '../components/SystemSettings';
 import { api } from '../services/api';
 
 export const Admin: React.FC = () => {
@@ -12,11 +14,19 @@ export const Admin: React.FC = () => {
 
       <main className="admin-grid">
         <section className="admin-section">
+          <SystemSettings />
+        </section>
+
+        <section className="admin-section">
           <FileUpload />
         </section>
 
         <section className="admin-section">
           <ConfigManager />
+        </section>
+
+        <section className="admin-section">
+          <CarParkManager />
         </section>
 
         <section className="admin-section mqtt-status">

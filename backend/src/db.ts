@@ -75,6 +75,18 @@ export const initDb = () => {
       route_id TEXT PRIMARY KEY,
       added_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS monitored_carparks (
+      facility_id TEXT PRIMARY KEY,
+      facility_name TEXT,
+      added_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS app_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 };
 
@@ -125,6 +137,42 @@ export const removeMonitoredRoute = (routeId: string) => {
   return db.prepare('DELETE FROM monitored_routes WHERE route_id = ?').run(routeId);
 };
 
+// Monitored CarParks Helpers
+export const getMonitoredCarParks = () => {
+  return db.prepare('SELECT * FROM monitored_carparks ORDER BY facility_name ASC').all() as any[];
+};
+
+export const addMonitoredCarPark = (facilityId: string, facilityName: string) => {
+  return db.prepare('INSERT OR REPLACE INTO monitored_carparks (facility_id, facility_name) VALUES (?, ?)').run(facilityId, facilityName);
+};
+
+export const removeMonitoredCarPark = (facilityId: string) => {
+  return db.prepare('DELETE FROM monitored_carparks WHERE facility_id = ?').run(facilityId);
+};
+
+// Settings Helpers
+export const getAllSettings = () => {
+  const rows = db.prepare('SELECT key, value FROM app_settings').all() as any[];
+  const settings: Record<string, string> = {};
+  rows.forEach(r => { settings[r.key] = r.value; });
+  return settings;
+};
+
+export const getSetting = (key: string, defaultValue: string = '') => {
+  const row = db.prepare('SELECT value FROM app_settings WHERE key = ?').get(key) as any;
+  return row ? row.value : defaultValue;
+};
+
+export const updateSettings = (settings: Record<string, string>) => {
+  const stmt = db.prepare('INSERT OR REPLACE INTO app_settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)');
+  const runBatch = db.transaction((data) => {
+    for (const [key, value] of Object.entries(data)) {
+      stmt.run(key, value);
+    }
+  });
+  runBatch(settings);
+};
+
 // Search Helpers
 export const searchStops = (query: string) => {
   return db.prepare(`
@@ -155,7 +203,7 @@ export const searchRoutes = (query: string) => {
 
 export const getScheduledDepartures = (stopId: string, dayOfWeek: string, timeStr: string, dateStr: string) => {
   return db.prepare(`
-    SELECT st.departure_time, t.trip_headsign, r.route_short_name, r.route_long_name,
+    SELECT st.departure_time, t.trip_headsign, t.direction_id, t.route_id, r.route_short_name, r.route_long_name,
            GROUP_CONCAT(st.trip_id) as trip_ids
     FROM stop_times st
     JOIN trips t ON st.trip_id = t.trip_id
@@ -172,6 +220,25 @@ export const getScheduledDepartures = (stopId: string, dayOfWeek: string, timeSt
     AND c.end_date >= ?
     GROUP BY st.departure_time, t.trip_headsign
     ORDER BY st.departure_time ASC
-    LIMIT 15
-  `).all(dateStr, stopId, timeStr, dateStr, dateStr) as any[];
+    LIMIT 30
+    `).all(dateStr, stopId, timeStr, dateStr, dateStr) as any[];
+    };
+export const getTerminatingTrips = (stopId: string, dayOfWeek: string, dateStr: string, minTime: string, maxTime: string) => {
+  const parentId = stopId.substring(0, 6) + '%';
+  return db.prepare(`
+    SELECT st.trip_id
+    FROM stop_times st
+    JOIN trips t ON st.trip_id = t.trip_id
+    JOIN calendar c ON t.service_id = c.service_id
+    LEFT JOIN calendar_dates cd ON t.service_id = cd.service_id AND cd.date = ?
+    WHERE (st.stop_id = ? OR st.stop_id LIKE ?)
+    AND (
+      (c.${dayOfWeek} = 1 AND (cd.exception_type IS NULL OR cd.exception_type != 2))
+      OR cd.exception_type = 1
+    )
+    AND c.start_date <= ?
+    AND c.end_date >= ?
+    AND st.arrival_time BETWEEN ? AND ?
+    AND st.stop_sequence = (SELECT MAX(stop_sequence) FROM stop_times WHERE trip_id = st.trip_id)
+  `).all(dateStr, stopId, parentId, dateStr, dateStr, minTime, maxTime) as any[];
 };

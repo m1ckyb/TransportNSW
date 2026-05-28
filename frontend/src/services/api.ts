@@ -18,8 +18,39 @@ export const api = {
     const response = await client.get('/alerts');
     return response.data;
   },
-  
-  // Config Stops
+  getSCTrackData: async () => {
+    const response = await client.get('/track/sc');
+    return response.data;
+  },
+  getKeyHealth: async () => {
+    const response = await client.get('/health/keys');
+    return response.data;
+  },
+
+  // Car Park APIs
+  getMonitoredCarParks: async () => {
+    const response = await client.get('/carparks/monitored');
+    return response.data;
+  },
+  lookupCarParks: async () => {
+    const response = await client.get('/carparks/lookup');
+    return response.data;
+  },
+  getConfigCarParks: async () => {
+    const response = await client.get('/admin/config/carparks');
+    return response.data;
+  },
+  addMonitoredCarPark: async (facilityId: string, facilityName: string) => {
+    const response = await client.post('/admin/config/carparks', { facilityId, facilityName });
+    return response.data;
+  },
+  removeMonitoredCarPark: async (facilityId: string) => {
+    const response = await client.delete(`/admin/config/carparks/${facilityId}`);
+    return response.data;
+  },
+
+  // Admin APIs
+
   getConfigStops: async () => {
     const response = await client.get('/admin/config/stops');
     return response.data;
@@ -44,6 +75,24 @@ export const api = {
   },
   removeConfigRoute: async (routeId: string) => {
     const response = await client.delete(`/admin/config/routes/${routeId}`);
+    return response.data;
+  },
+
+  getAppSettings: async () => {
+    const response = await client.get('/admin/settings');
+    return response.data;
+  },
+  updateAppSettings: async (settings: Record<string, string>) => {
+    const response = await client.post('/admin/settings', settings);
+    return response.data;
+  },
+  testApiKey: async (apikey: string) => {
+    const response = await client.post('/admin/test-key', { apikey });
+    return response.data;
+  },
+
+  syncGtfs: async (mode: string) => {
+    const response = await client.post('/admin/sync-gtfs', { mode });
     return response.data;
   },
 

@@ -10,10 +10,10 @@ This document is a summary of the key architectural patterns, decisions, and com
 
 ## Architectural Decisions
 
-### 1. API Versioning (v2 vs v1)
-- **Status:** TransportNSW has migrated major modes (Sydney Trains, Metro, Light Rail) to **v2**. Regional modes (NSW TrainLink) are still primarily on **v1** for real-time trip updates.
-- **Strategy:** Use an "Attempt v2, Fallback to v1" pattern. The `tfnsw.ts` client is configured to try the v2 endpoint first and automatically switch to v1 if a 404 is received. This ensures future-proofing without losing current data.
-- **Alerts:** Network-wide alerts should be fetched using the consolidated `/v2/gtfs/alerts/all` endpoint for maximum efficiency.
+### 1. API Versioning & Rate Limiting
+- **Versioning:** TransportNSW has migrated major modes (Sydney Trains, Metro, Light Rail) to **v2**. Regional modes (NSW TrainLink) are still primarily on **v1** for real-time trip updates. The client handles this with an "Attempt v2, Fallback to v1" strategy.
+- **Key Rotation:** To mitigate "429 Too Many Requests" errors, the backend supports up to 5 API keys. These can be configured directly in the **Settings UI** and are stored in the database. The client automatically rotates between these keys on every request.
+- **Alerts:** Network-wide alerts are fetched using the consolidated `/v2/gtfs/alerts/all` endpoint.
 
 ### 2. Timezone & Timing Consistency
 - **Constraint:** GTFS schedule data is provided in "local time" (HH:MM:SS), but real-time Protobuf feeds use Unix timestamps (seconds since epoch).
@@ -33,3 +33,7 @@ This document is a summary of the key architectural patterns, decisions, and com
 ### 5. Home Assistant / MQTT Standards
 - **Discovery:** The app uses HA MQTT Discovery. Sensors should include `device_class: duration`, `unit_of_measurement: min`, and `state_class: measurement` to ensure beautiful history graphs in the HA UI.
 - **Attributes:** Always include rich metadata (Run Number, Set Type, Stopping Pattern) in the attributes to enable complex automations and custom cards.
+
+### 6. Signaller View (SigView)
+- **Concept:** Provides a side-by-side view of two distinct platforms.
+- **Implementation:** Reuses the `DepartureBoard` component with separate state management for each column. This allows comparison of train progress between two points on the network (e.g., checking if a train that left Station A is correctly appearing as approaching Station B).
