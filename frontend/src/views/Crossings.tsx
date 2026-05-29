@@ -296,8 +296,11 @@ export const Crossings: React.FC = () => {
 
       const nowTs = Date.now();
       const filtered = merged.filter(t => {
-        // Filter out 'K' trains as they typically terminate at Thirroul and don't cross to Coalcliff
+        // Filter out 'K' trains as they typically terminate at Thirroul and don't cross to Coalcliff (specific to North)
         if (selectedPanel.id === 'wollongong_north' && t.runNumber.startsWith('K')) return false;
+
+        // Filter out Port Kembla trains for Wollongong South as they diverge at Coniston
+        if (selectedPanel.id === 'wollongong_south' && t.headsign.toLowerCase().includes('port kembla')) return false;
 
         const isPastCrossing = t.trackSection && (
           (t.direction === 'Up' && (
