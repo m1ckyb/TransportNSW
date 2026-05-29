@@ -274,27 +274,7 @@ export const Crossings: React.FC = () => {
 
     const isAtPlatform = (train.onEntryBoard && train.entryTime && (train.entryTime <= now + 60000)) || isAtHoldingPoint;
     
-    const conflictingTrain = seq.find(other => 
-      other.runNumber !== train.runNumber && 
-      other.direction !== train.direction &&
-      !other.physicalSingleLine &&
-      train.entryTime && other.entryTime &&
-      Math.abs(train.entryTime - other.entryTime) < 180000 
-    );
-
-    if (conflictingTrain && !sectionOccupied && !isLogicalDownEntry) {
-      return { label: 'DECISION NEEDED', class: 'status-conflict', isConflict: true };
-    }
-
-    if (isAtPlatform && (sectionOccupied || isLogicalDownEntry)) {
-      return { label: 'WAITING', class: 'status-waiting' };
-    }
-
-    if (isAtPlatform) return { label: 'AT PLATFORM', class: 'status-waiting' };
-    
-    const isNext = idx === 0 || (seq[0]?.physicalSingleLine && idx === 1);
-    if (isNext) return { label: 'NEXT', class: 'status-next' };
-
+    // Detect Approach Range
     const sectionMatch = train.trackSection?.match(/([A-Z]+)-(\d+)/);
     let inApproachRange = false;
     if (sectionMatch) {
@@ -307,8 +287,31 @@ export const Crossings: React.FC = () => {
         if (train.direction === 'Down' && ['665', '667', '647', '645', '660', '651', '658'].some(s => train.trackSection.includes(s))) inApproachRange = true;
       }
     }
-
     const isApproachOnly = train.trackSection && (train.trackSection.includes('665') || train.trackSection.includes('667'));
+    const isApproaching = isApproachOnly || inApproachRange;
+
+    const conflictingTrain = seq.find(other => 
+      other.runNumber !== train.runNumber && 
+      other.direction !== train.direction &&
+      !other.physicalSingleLine &&
+      train.entryTime && other.entryTime &&
+      Math.abs(train.entryTime - other.entryTime) < 180000 
+    );
+
+    // DECISION NEEDED only if approaching or at platform
+    if (conflictingTrain && !sectionOccupied && !isLogicalDownEntry && (isApproaching || isAtPlatform)) {
+      return { label: 'DECISION NEEDED', class: 'status-conflict', isConflict: true };
+    }
+
+    if (isAtPlatform && (sectionOccupied || isLogicalDownEntry)) {
+      return { label: 'WAITING', class: 'status-waiting' };
+    }
+
+    if (isAtPlatform) return { label: 'AT PLATFORM', class: 'status-waiting' };
+    
+    const isNext = idx === 0 || (seq[0]?.physicalSingleLine && idx === 1);
+    if (isNext) return { label: 'NEXT', class: 'status-next' };
+
     if (isApproachOnly) return { label: 'APPROACHING', class: 'status-waiting' };
     if (inApproachRange) return { label: 'APPROACHING', class: 'status-approaching' };
     return { label: 'EN ROUTE', class: 'status-approaching' };
