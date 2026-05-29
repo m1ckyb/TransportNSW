@@ -377,10 +377,13 @@ export const Crossings: React.FC = () => {
                 <div className="queue-direction">{train.direction === 'Down' ? <ArrowDown size={24} /> : <ArrowUp size={24} />}<span className="dir-label">{train.direction}</span></div>
                 <div className="queue-main">
                   <div className="train-id-row">
-                    <span className={`route-pill ${train.isFreight ? 'freight-pill' : ''}`}>{train.routeShortName}</span>
+                    {train.isEmpty ? (
+                      <span className="route-pill status-waiting empty-badge-pill">EMPTY</span>
+                    ) : (
+                      <span className={`route-pill ${train.isFreight ? 'freight-pill' : ''}`}>{train.routeShortName}</span>
+                    )}
                     <span className="run-id">{train.runNumber}{train.isRealtime && <span className="live-dot"></span>}</span>
                     <div className={`status-badge ${status.class}`}>{status.label}</div>
-                    {train.isEmpty && <div className="status-badge status-waiting empty-badge">EMPTY</div>}
                     {train.trackSection ? (
                       <span className="track-section-badge">{train.trackSection}</span>
                     ) : (
