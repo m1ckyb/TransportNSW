@@ -62,16 +62,20 @@ export const CarParkPanel: React.FC = () => {
       <header className="app-header">
         <div className="header-left">
           <h1>Park & Ride Occupancy</h1>
-          <button 
-            className={`refresh-btn ${loading ? 'spinning' : ''}`} 
-            onClick={fetchData}
-            disabled={loading}
-          >
-            <RefreshCw size={18} />
-          </button>
-        </div>
-        <div className="header-right" style={{ color: '#94a3b8', fontSize: '0.85rem' }}>
-          Last updated: {lastUpdated.toLocaleTimeString([], { hour12: false })}
+          <div className="header-right-meta">
+            {lastUpdated && (
+              <span className="last-updated-tag">
+                UPDATED: {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+              </span>
+            )}
+            <button 
+              className={`refresh-btn ${loading ? 'spinning' : ''}`} 
+              onClick={fetchData}
+              disabled={loading}
+            >
+              <RefreshCw size={18} />
+            </button>
+          </div>
         </div>
       </header>
 

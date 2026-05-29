@@ -14,6 +14,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ forceView = 'dashboard' })
   const [data, setData] = useState<any>(null);
   const [alerts, setAlerts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   useEffect(() => {
     fetchStops();
@@ -36,6 +37,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ forceView = 'dashboard' })
       ]);
       setData(departureRes);
       setAlerts(Array.isArray(alertRes?.alerts) ? alertRes.alerts : []);
+      setLastUpdated(new Date());
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -87,14 +89,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ forceView = 'dashboard' })
             {forceView === 'trackwork' && 'Network Trackwork'}
             {forceView === 'alerts' && 'Service Alerts'}
           </h1>
-          <button 
-            className={`refresh-btn ${loading ? 'spinning' : ''}`} 
-            onClick={handleManualRefresh}
-            disabled={loading}
-            title="Manual Refresh"
-          >
-            <RefreshCw size={18} />
-          </button>
+          <div className="header-right-meta">
+            {lastUpdated && (
+              <span className="last-updated-tag">
+                UPDATED: {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+              </span>
+            )}
+            <button 
+              className={`refresh-btn ${loading ? 'spinning' : ''}`} 
+              onClick={handleManualRefresh}
+              disabled={loading}
+              title="Manual Refresh"
+            >
+              <RefreshCw size={18} />
+            </button>
+          </div>
         </div>
         {forceView === 'dashboard' && (
           <div className="stop-selector">

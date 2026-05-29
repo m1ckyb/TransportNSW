@@ -36,6 +36,7 @@
 - Timezone support for accurate Sydney-based timing.
 
 ### Changed
+- Refactored freight identification and direction tracking in 'Crossings' view to use explicit patterns (MC5-series, 9-series, and directional suffixes like WB/BW) as the primary identification method.
 - Refined the "In Section" status to strictly apply only to the physical single-track blocks (642, 640-633, 632-629, 627) between Scarborough and Coalcliff.
 - Updated tracking logic to force approach sections (665, 667) to always display as "APPROACHING" to prevent premature "WAITING" flags.
 - Redesigned the main navigation bar to accommodate the global clock and health monitoring indicators.
@@ -50,6 +51,7 @@
 - Grouped network alerts by line for better organization.
 
 ### Fixed
+- Corrected freight train identification patterns for Up/Down directions, including 4-digit 9-series (49xx) for Down freight and precise directional codes (e.g., 1WB7) for Up freight.
 - Fixed run number extraction for non-timetabled services, ensuring IDs like "NonTimetabled.MC52" correctly display as "MC52" in the tracking queue.
 - Disabled experimental service type classification (Express/All Stations) to maintain UI stability while refining heuristics.
 - Fixed API Rate Limit (429) exhaustion caused by concurrent departure board requests. Implemented a Promise-based lock in the backend to ensure simultaneous requests from views like 'Crossings' reuse a single in-flight API call instead of spamming TfNSW servers.

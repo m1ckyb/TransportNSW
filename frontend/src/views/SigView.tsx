@@ -12,6 +12,7 @@ export const SigView: React.FC = () => {
   const [data1, setData1] = useState<any>(null);
   const [data2, setData2] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   useEffect(() => {
     fetchStops();
@@ -36,6 +37,7 @@ export const SigView: React.FC = () => {
       ]);
       setData1(res1);
       setData2(res2);
+      setLastUpdated(new Date());
     } catch (error) {
       console.error('SigView fetch failed:', error);
     } finally {
@@ -67,26 +69,64 @@ export const SigView: React.FC = () => {
 
   return (
     <div className="sigview-container full-screen">
-      <header className="view-header">
-        <div className="header-left">
-          <nav className="sub-nav">
-            <button 
-              className={activeTab === 'sig' ? 'active' : ''} 
-              onClick={() => setActiveTab('sig')}
-            >
-              <Layout size={16} />
-              <span>Signaller View</span>
-            </button>
-            <button 
-              className={activeTab === 'crossings' ? 'active' : ''} 
-              onClick={() => setActiveTab('crossings')}
-            >
-              <ArrowRightLeft size={16} />
-              <span>Crossings</span>
-            </button>
-          </nav>
+      {activeTab === 'sig' && (
+        <header className="view-header">
+          <div className="header-left">
+            <nav className="sub-nav">
+              <button 
+                className="active" 
+                onClick={() => setActiveTab('sig')}
+              >
+                <Layout size={16} />
+                <span>Signaller View</span>
+              </button>
+              <button 
+                onClick={() => setActiveTab('crossings')}
+              >
+                <ArrowRightLeft size={16} />
+                <span>Crossings</span>
+              </button>
+            </nav>
+            <div className="header-right-meta" style={{ marginLeft: 'auto' }}>
+              {lastUpdated && (
+                <span className="last-updated-tag">
+                  UPDATED: {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+                </span>
+              )}
+              <button 
+                className={`refresh-btn ${loading ? 'spinning' : ''}`} 
+                onClick={fetchData}
+                disabled={loading}
+              >
+                <RefreshCw size={18} />
+              </button>
+            </div>
+          </div>
+        </header>
+      )}
+
+      {activeTab === 'crossings' && (
+        <div className="view-header" style={{ borderBottom: 'none', paddingBottom: 0 }}>
+          <div className="header-left">
+            <nav className="sub-nav">
+              <button 
+                className="active" 
+                onClick={() => setActiveTab('sig')}
+              >
+                <Layout size={16} />
+                <span>Signaller View</span>
+              </button>
+              <button 
+                className="active" 
+                style={{ background: 'var(--accent-bg)', color: 'var(--accent)' }}
+              >
+                <ArrowRightLeft size={16} />
+                <span>Crossings</span>
+              </button>
+            </nav>
+          </div>
         </div>
-      </header>
+      )}
 
       <main className="sig-content">
         {activeTab === 'sig' ? (

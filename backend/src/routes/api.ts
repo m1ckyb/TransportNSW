@@ -485,6 +485,7 @@ router.get('/carparks/lookup', async (req, res) => {
 
 router.get('/track/sc', async (req, res) => {
   try {
+    const { getTripInfo } = require('../db');
     const vehicles = await fetchVehiclePositions();
     const scTrains = vehicles
       .filter((v: any) => v.vehicle?.stopId && v.vehicle.stopId.includes('SouthCoast'))
@@ -500,11 +501,16 @@ router.get('/track/sc', async (req, res) => {
         // Extract section from stopId (e.g., "SouthCoast.COAL-665" -> "COAL-665")
         const section = stopId.split('.').pop();
         
+        // Enrich with trip info if available
+        const tripInfo = getTripInfo(tripId);
+        
         return {
           tripId,
           runNumber,
           section,
           stopId,
+          directionId: v.vehicle.trip.directionId !== undefined ? v.vehicle.trip.directionId : tripInfo?.direction_id,
+          headsign: tripInfo?.trip_headsign || v.vehicle.vehicle?.label || '',
           label: v.vehicle.vehicle?.label || '',
           timestamp: v.vehicle.timestamp ? Number(v.vehicle.timestamp.low || v.vehicle.timestamp) * 1000 : Date.now(),
           position: v.vehicle.position
