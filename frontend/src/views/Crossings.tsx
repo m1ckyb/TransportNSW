@@ -80,7 +80,7 @@ const PANELS: CrossingPanel[] = [
       Down: ['WOLL-406-121', 'WOLL-408-125']
     },
     approachStationPrefixes: {
-      Up: 'DAPTO',
+      Up: 'DO41',
       Down: 'WOLL'
     },
     exitSections: {
