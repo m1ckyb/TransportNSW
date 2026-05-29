@@ -115,8 +115,8 @@ export const Crossings: React.FC = () => {
         const isInSingleLine = ['627', '632', '629', '640', '633', '642'].some(s => matchesSection(section, s));
         if (isInSingleLine) return true;
 
-        const isCriticalDown = ['665', '667', '647', '645', '660', '653', '658', '651'].some(s => matchesSection(section, s));
-        const isCriticalUp = ['628', '626', '624', '621', '622', '619'].some(s => matchesSection(section, s));
+        const isCriticalDown = ['665', '667', '647', '645', '660', '653', '658', '651', '628', '626', '624', '622', '621', '619', '637', '654', '643', '656'].some(s => matchesSection(section, s));
+        const isCriticalUp = ['621', '619', '622', '624', '626', '628', '645', '647', '665', '667', '660', '653', '658', '651', '637', '654', '643', '656'].some(s => matchesSection(section, s));
 
         if (dir === 'Down' && isCriticalDown) return true;
         if (dir === 'Up' && isCriticalUp) return true;
