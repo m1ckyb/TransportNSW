@@ -33,6 +33,55 @@ const PANELS: CrossingPanel[] = [
   }
 ];
 
+const getPassengerInfo = (run: string): { direction: 'Up' | 'Down' } | null => {
+  const runUpper = run.toUpperCase().replace(/-/g, '');
+  if (runUpper.startsWith('RC')) return { direction: 'Down' }; 
+  if (runUpper.startsWith('M67') || runUpper.startsWith('CM')) {
+     return { direction: /[02468]$/.test(runUpper) ? 'Up' : 'Down' };
+  }
+  const match = runUpper.match(/^([A-Z]*)(\d+)$/);
+  if (!match) return null;
+  const prefix = match[1];
+  const numStr = match[2];
+  const num = parseInt(numStr);
+  const isEven = num % 2 === 0;
+  if (['C', 'P', 'S'].includes(prefix)) {
+    if (num >= 400 && num <= 499) return { direction: 'Up' };
+    if (num >= 600 && num <= 699) return { direction: 'Down' };
+  }
+  if (prefix === 'K') return { direction: isEven ? 'Up' : 'Down' };
+  if (['KN', 'CN', 'KU', 'CU'].includes(prefix)) return { direction: isEven ? 'Up' : 'Down' };
+  if (['C', 'H', 'N', 'W', 'S'].includes(prefix)) {
+     if (numStr.length === 3 || numStr.length === 4) return { direction: isEven ? 'Up' : 'Down' };
+  }
+  if (prefix === '') {
+    if (numStr.length === 3 || numStr.length === 4) return { direction: isEven ? 'Up' : 'Down' };
+  }
+  return null;
+};
+
+const isUpFreight = (run: string) => /^MC5\d*[13579]$/.test(run) || /^9\d{3}$/.test(run) || /^\d(WB|WM|MB)\d$/i.test(run);
+const isDownFreight = (run: string) => /^\d9\d{2}$/.test(run) || /^MC5\d*[02468]$/.test(run) || /\d+\s?(BW|MW|BM)\s?\d+/i.test(run);
+const isFreightRun = (run: string) => isUpFreight(run) || isDownFreight(run);
+
+const inferDirection = (runNumber: string, headsign?: string): 'Up' | 'Down' => {
+  const passInfo = getPassengerInfo(runNumber);
+  if (passInfo) return passInfo.direction;
+  if (isUpFreight(runNumber)) return 'Up';
+  if (isDownFreight(runNumber)) return 'Down';
+  const cleanHeadsign = (headsign || '').toLowerCase();
+  const upKeywords = ['central', 'waterfall', 'bondi', 'martin place', 'hurstville', 'cronulla', 'sutherland', 'town hall', 'north sydney', 'museum', 'st james', 'wynyard'];
+  const downKeywords = ['kiama', 'port kembla', 'wollongong', 'dapto', 'bomaderry', 'coniston', 'thirroul', 'berry', 'albion park', 'unanderra', 'shellharbour'];
+  if (upKeywords.some(k => cleanHeadsign.includes(k))) return 'Up';
+  if (downKeywords.some(k => cleanHeadsign.includes(k))) return 'Down';
+  const runDigitsMatch = runNumber.match(/\d+/);
+  if (runDigitsMatch) {
+      const lastDigit = parseInt(runDigitsMatch[0].slice(-1));
+      return lastDigit % 2 === 0 ? 'Up' : 'Down';
+  }
+  return 'Down';
+};
+
 export const Crossings: React.FC = () => {
   const [selectedPanelId, setSelectedPanelId] = useState(PANELS[0].id);
   const [sequence, setSequence] = useState<any[]>([]);
@@ -54,97 +103,22 @@ export const Crossings: React.FC = () => {
       const trackData = results.pop() as any[];
       
       const needsFastPolling = trackData.some(t => {
+        const dir = inferDirection(t.runNumber, t.headsign);
+        const isInSingleLine = ['627', '632', '629', '640', '633', '642'].some(s => t.section.includes(s));
+        if (isInSingleLine) return true;
+
         const isCriticalDown = t.section === 'COAL-645' || t.section === 'COAL-622-619' || t.section === 'COAL-624-621';
         const isCriticalUp = t.section === 'COAL-628' || t.section === 'COAL-626' || t.section === 'COAL-651-660' || t.section === 'COAL-660-653';
-        const isInSingleLine = ['627', '632', '629', '640', '633', '642'].some(s => t.section.includes(s));
-        return isCriticalDown || isCriticalUp || isInSingleLine;
+
+        if (dir === 'Down' && isCriticalDown) return true;
+        if (dir === 'Up' && isCriticalUp) return true;
+        
+        return false;
       });
       setFastPolling(needsFastPolling);
 
       const departuresResults = results;
       const trainMap = new Map<string, any>();
-
-      const getPassengerInfo = (run: string): { direction: 'Up' | 'Down' } | null => {
-        // Normalize run: uppercase and remove hyphens (e.g., KN-1 -> KN1)
-        const runUpper = run.toUpperCase().replace(/-/g, '');
-        
-        // Road Coach / Hi-Rail / Track Patrol
-        if (runUpper.startsWith('RC')) return { direction: 'Down' }; 
-        if (runUpper.startsWith('M67') || runUpper.startsWith('CM')) {
-           return { direction: /[02468]$/.test(runUpper) ? 'Up' : 'Down' };
-        }
-
-        const match = runUpper.match(/^([A-Z]*)(\d+)$/);
-        if (!match) return null;
-
-        const prefix = match[1];
-        const numStr = match[2];
-        const num = parseInt(numStr);
-        const isEven = num % 2 === 0;
-
-        // Specific South Coast Mariyung (D Set) / Empty Ranges
-        // C4xx/P4xx/S4xx are generally Up
-        // C6xx/P6xx/S6xx are generally Down
-        if (['C', 'P', 'S'].includes(prefix)) {
-          if (num >= 400 && num <= 499) return { direction: 'Up' };
-          if (num >= 600 && num <= 699) return { direction: 'Down' };
-        }
-
-        // K-series: Shunting / Local Coalcliff-PK/Kiama
-        if (prefix === 'K') return { direction: isEven ? 'Up' : 'Down' };
-
-        // Regional codes (Endeavour/Intercity)
-        if (['KN', 'CN', 'KU', 'CU'].includes(prefix)) return { direction: isEven ? 'Up' : 'Down' };
-
-        // Standard AANN / Intercity prefixes
-        if (['C', 'H', 'N', 'W', 'S'].includes(prefix)) {
-           // Handle the case where prefix is just C/H/N/W/S and followed by 3 digits
-           if (numStr.length === 3 || numStr.length === 4) {
-             return { direction: isEven ? 'Up' : 'Down' };
-           }
-        }
-
-        // Purely numeric (3-digit Intercity or 4-digit)
-        if (prefix === '') {
-          if (numStr.length === 3 || numStr.length === 4) {
-            return { direction: isEven ? 'Up' : 'Down' };
-          }
-        }
-
-        return null;
-      };
-
-      const isUpFreight = (run: string) => /^MC5\d*[13579]$/.test(run) || /^9\d{3}$/.test(run) || /^\d(WB|WM|MB)\d$/i.test(run);
-      const isDownFreight = (run: string) => /^\d9\d{2}$/.test(run) || /^MC5\d*[02468]$/.test(run) || /\d+\s?(BW|MW|BM)\s?\d+/i.test(run);
-      const isFreightRun = (run: string) => isUpFreight(run) || isDownFreight(run);
-
-      const inferDirection = (runNumber: string, headsign?: string): 'Up' | 'Down' => {
-        // Priority 1: Passenger / South Coast Rules
-        const passInfo = getPassengerInfo(runNumber);
-        if (passInfo) return passInfo.direction;
-
-        // Priority 2: Freight Logic
-        if (isUpFreight(runNumber)) return 'Up';
-        if (isDownFreight(runNumber)) return 'Down';
-
-        const cleanHeadsign = (headsign || '').toLowerCase();
-        
-        // Priority 3: Destination Matching
-        const upKeywords = ['central', 'waterfall', 'bondi', 'martin place', 'hurstville', 'cronulla', 'sutherland', 'town hall', 'north sydney', 'museum', 'st james', 'wynyard'];
-        const downKeywords = ['kiama', 'port kembla', 'wollongong', 'dapto', 'bomaderry', 'coniston', 'thirroul', 'berry', 'albion park', 'unanderra', 'shellharbour'];
-
-        if (upKeywords.some(k => cleanHeadsign.includes(k))) return 'Up';
-        if (downKeywords.some(k => cleanHeadsign.includes(k))) return 'Down';
-
-        // Priority 4: Fallback Parity
-        const runDigitsMatch = runNumber.match(/\d+/);
-        if (runDigitsMatch) {
-            const lastDigit = parseInt(runDigitsMatch[0].slice(-1));
-            return lastDigit % 2 === 0 ? 'Up' : 'Down';
-        }
-
-        return 'Down';
-      };
 
       departuresResults.forEach((res, i) => {
         const currentStop = selectedPanel.stops[i];
