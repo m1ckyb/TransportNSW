@@ -17,6 +17,7 @@ interface Departure {
   time: number;
   delay: number;
   isRealtime: boolean;
+  isEmpty?: boolean;
   stoppingPattern: StopUpdate[];
   relatedServices?: string[];
   activeAlerts?: string[];
@@ -73,7 +74,9 @@ export const DepartureBoard: React.FC<DepartureBoardProps> = ({ stopName, depart
             return (
               <div key={`${dep.tripId}-${index}`} className="departure-group">
                 <div className="departure-item" onClick={() => toggleTrip(dep.tripId)}>
-                  <div className="route-badge">{dep.routeShortName}</div>
+                  <div className={`route-badge ${dep.isEmpty ? 'empty-badge-pill' : ''}`}>
+                    {dep.isEmpty ? 'EMPTY' : dep.routeShortName}
+                  </div>
                   <div className="departure-main">
                     <div className="destination" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       {dep.headsign}
