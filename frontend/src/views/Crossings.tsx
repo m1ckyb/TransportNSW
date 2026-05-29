@@ -59,18 +59,18 @@ const PANELS: CrossingPanel[] = [
     stops: [
       { id: '2500371', name: 'Coniston', platform: '1', direction: 'Up' },
       { id: '2500372', name: 'Coniston', platform: '2', direction: 'Down' },
-      { id: '2526171', name: 'Unanderra', platform: '1', direction: 'Up' },
-      { id: '2526172', name: 'Unanderra', platform: '2', direction: 'Down' },
+      { id: '2526171', name: 'Unanderra', platform: '2', direction: 'Up' },
+      { id: '2526172', name: 'Unanderra', platform: '1', direction: 'Down' },
     ],
     singleLineSections: [
-      'WOLL-408-125', 'PKLA-110', 'PKLA-86-83'
+      'WOLL-112', 'WOLL-1007'
     ],
     waitingSections: [
-      'WOLL-440-435', 'WOLL-114', 'PKLA-27', 'PKLA-24', 'Coniston', 'Unanderra', 'Wollongong'
+      'WOLL-406-121', 'WOLL-408-125', 'UNAN-1016', 'UNAN-1018', 'Coniston', 'Unanderra', 'Wollongong'
     ],
     holdingSections: {
-      Up: ['PKLA-110'],
-      Down: ['WOLL-408-125']
+      Up: [],
+      Down: []
     },
     approachSections: {
       Up: ['PKLA-27', 'PKLA-24'],
