@@ -16,7 +16,7 @@ const PANELS: CrossingPanel[] = [
   {
     id: 'wollongong_north',
     name: 'Wollongong North',
-    routeLabel: 'Coalcliff to Scarborough',
+    routeLabel: 'Coalcliff ↔ Scarborough',
     stops: [
       { id: '2508151', name: 'Coalcliff', platform: '1', direction: 'Up' },
       { id: '2508152', name: 'Coalcliff', platform: '2', direction: 'Down' },
