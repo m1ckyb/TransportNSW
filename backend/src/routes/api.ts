@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { getSetInfo } from '../utils/train-types';
 import { fetchTripUpdates, fetchAlerts, fetchCarParks, fetchCarParksFullList, fetchVehiclePositions } from '../tfnsw';
 import { getStopInfo, getTripInfo, getMonitoredRoutes, getMonitoredStops, getScheduledDepartures, getTerminatingTrips, getStopNames, getMonitoredCarParks, db } from '../db';
 
@@ -151,17 +152,9 @@ router.get('/departures/:stopId', async (req, res) => {
         timestamp = scheduledTimestamp;
       }
 
-      // Always try to extract set info from tripId if vehicle label is empty
+      // Always try to extract set info from tripId and/or run number
       const targetTripId = realtimeEntity ? realtimeEntity.tripUpdate.trip.tripId : tripIds[0];
-      const tripParts = targetTripId.split('.');
-      if (setInfo === '---' && tripParts.length >= 6) {
-         const offset = tripParts.length === 7 ? 4 : 3;
-         const setType = tripParts[offset];
-         const carCount = tripParts[offset+1];
-         if (setType && setType.length === 1 && !isNaN(Number(carCount))) {
-           setInfo = `${setType} Set (${carCount} cars)`;
-         }
-      }
+      setInfo = getSetInfo(targetTripId, realtimeEntity?.tripUpdate?.vehicle?.label || setInfo);
 
       // If no live stopping pattern, fetch from schedule
       if (stoppingPattern.length === 0) {
@@ -250,16 +243,7 @@ router.get('/departures/:stopId', async (req, res) => {
           const tripParts = tripId.split('.');
           const runNumber = tripParts[0];
 
-          let setInfo = entity.tripUpdate.vehicle?.label || '---';
-          // ... setInfo extraction logic ...
-          if (setInfo === '---' && tripParts.length >= 6) {
-             const offset = tripParts.length === 7 ? 4 : 3;
-             const setType = tripParts[offset];
-             const carCount = tripParts[offset+1];
-             if (setType && setType.length === 1 && !isNaN(Number(carCount))) {
-               setInfo = `${setType} Set (${carCount} cars)`;
-             }
-          }
+          let setInfo = getSetInfo(tripId, entity.tripUpdate.vehicle?.label);
 
           let headsign = tripInfo?.trip_headsign || 'Train';
           // ... headsign fallback logic ...

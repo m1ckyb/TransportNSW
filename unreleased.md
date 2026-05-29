@@ -1,6 +1,16 @@
 # Unreleased Changes
 
 ### Added
+- Comprehensive run number mapping for South Coast line passenger trains, providing descriptive train types (e.g., Mariyung, Oscar, V Set, Endeavour) and direction-specific configuration based on run number ranges.
+- Support for Heritage Operator Tours (HOT) and Light Locomotives identification (NANN format), mapping operators like 3801 Limited and motive power types (Steam, Diesel, Electric).
+- Detailed Intrastate Freight mapping for the Illawarra region (District 9), identifying operators (Pacific National, QUBE, SSR, etc.), routes (e.g., Illawarra -> Sydney), and direction.
+- Interstate Freight and Passenger mapping (NAAN format) decoding departure day, origin/destination (e.g., Sydney, Melbourne, Perth, South Coast), and service category.
+- Coal Train identification for South and West regions (AANN format), mapping loading points (e.g., Metropolitan, Tahmoor), operators (SSR, PN, Aurizon), and load status.
+- Light Locomotive identification (ADDD format) for Diesel and Electric movements, including district tracking and special local labels for the Port Kembla/Inner Harbour area (D921-D940).
+- Local Trip Train identification for the Port Kembla/Inner Harbour area (T9NN format), mapping industrial shunts to operators like WATCO, PN, QUBE, and Aurizon.
+- Maintenance Train decoding (ANNN format) for the Metropolitan Heavy Rail network, identifying service types (Overhead, Ballast, Spoil, Hi-Rail) and work districts.
+- ARTC/CRN Maintenance and Track Inspection mapping, including country work trains and specialized AK/Mechanised inspection cars (AANN format) with area and direction tracking.
+- New utility `getSetInfo` to centralize train type identification across API and background worker services.
 - Conflict detection logic in 'Crossings' view to flag potential "DECISION NEEDED" states when opposing trains approach the single line simultaneously.
 - Adaptive polling system in 'Crossings' view, automatically switching to 15s intervals when trains enter critical approach or single-line sections.
 - "Last Updated" timestamp indicators across all real-time views (Dashboard, SigView, Crossings, Parking) to provide visibility into data freshness.

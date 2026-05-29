@@ -1,7 +1,8 @@
+import dotenv from 'dotenv';
 import { fetchTripUpdates, fetchCarParksFullList } from '../tfnsw';
 import { getMonitoredStops, getMonitoredCarParks, getTripInfo, db } from '../db';
 import { publishStopDeparture, publishCarParkOccupancy } from '../mqtt';
-import dotenv from 'dotenv';
+import { getSetInfo } from '../utils/train-types';
 
 dotenv.config();
 
@@ -56,14 +57,8 @@ export function startWorker() {
                 const tripInfo = tripId ? getTripInfo(tripId) : null;
                 const tripParts = tripId.split('.');
                 const runNumber = tripParts[0];
-                let setInfo = entity.tripUpdate.vehicle?.label || 'Unknown';
-                if (tripParts.length >= 6) {
-                  const setType = tripParts[4];
-                  const carCount = tripParts[5];
-                  if (setType.length === 1 && !isNaN(Number(carCount))) {
-                    setInfo = `${setType} Set (${carCount} cars)`;
-                  }
-                }
+                let setInfo = getSetInfo(tripId, entity.tripUpdate.vehicle?.label);
+
                 departures.push({
                   time: timestamp,
                   runNumber,
