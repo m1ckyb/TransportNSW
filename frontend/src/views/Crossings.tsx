@@ -76,16 +76,16 @@ const PANELS: CrossingPanel[] = [
       Down: []
     },
     approachSections: {
-      Up: ['PKLA-27', 'PKLA-24'],
-      Down: ['WOLL-440-435', 'WOLL-114']
+      Up: ['UNAN-1016', 'UNAN-1018'],
+      Down: ['WOLL-406-121', 'WOLL-408-125']
     },
     approachStationPrefixes: {
       Up: 'DAPTO',
       Down: 'WOLL'
     },
     exitSections: {
-      Up: ['WOLL-440-435', 'WOLL-114'],
-      Down: ['PKLA-27', 'PKLA-24']
+      Up: ['WOLL-406-121', 'WOLL-408-125'],
+      Down: ['UNAN-1016', 'UNAN-1018']
     },
     exitStationPrefixes: ['DAPTO', 'WOLL']
   }
@@ -299,8 +299,20 @@ export const Crossings: React.FC = () => {
         // Filter out 'K' trains as they typically terminate at Thirroul and don't cross to Coalcliff (specific to North)
         if (selectedPanel.id === 'wollongong_north' && t.runNumber.startsWith('K')) return false;
 
-        // Filter out Port Kembla trains for Wollongong South as they diverge at Coniston
-        if (selectedPanel.id === 'wollongong_south' && t.headsign.toLowerCase().includes('port kembla')) return false;
+        // Wollongong South specific validation: Must strictly traverse the section
+        if (selectedPanel.id === 'wollongong_south') {
+           // 1. Up trains must have come from Unanderra (prevents PK branch trains appearing at Coniston)
+           if (t.direction === 'Up' && !t.onEntryBoard && !t.physicalSingleLine) return false;
+
+           // 2. Down trains must be heading to Unanderra (prevents PK branch trains and terminators)
+           if (t.direction === 'Down' && !t.onExitBoard && !t.physicalSingleLine) {
+             const goesToUnanderra = t.stoppingPattern?.some((s: any) => s.stopName.includes('Unanderra'));
+             if (!goesToUnanderra) return false;
+           }
+
+           // 3. General Port Kembla headsign filter
+           if (t.headsign.toLowerCase().includes('port kembla')) return false;
+        }
 
         const isPastCrossing = t.trackSection && (
           (t.direction === 'Up' && (
