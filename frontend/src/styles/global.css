@@ -910,6 +910,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
+  align-items: center;
 }
 
 .time-block .label {
@@ -964,6 +965,7 @@ body {
 .val-container {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
 }
 
