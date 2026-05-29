@@ -9,7 +9,11 @@ interface CrossingPanel {
   stops: { id: string; name: string; platform: string; direction: 'Down' | 'Up' }[];
   singleLineSections: string[];
   waitingSections: string[];
-  holdingSections: string[];
+  holdingSections: { Down: string[]; Up: string[] };
+  approachSections: { Down: string[]; Up: string[] };
+  approachStationPrefixes: { Down: string; Up: string };
+  exitSections: { Down: string[]; Up: string[] };
+  exitStationPrefixes: string[];
 }
 
 const PANELS: CrossingPanel[] = [
@@ -30,7 +34,57 @@ const PANELS: CrossingPanel[] = [
       '624-621', '622-619', '628', '626', '631-634', '637', '654', '643', '656', '665', '667', '647', '645', '660-653', '651-658', 'OTFD', 'THRL', 'HELS',
       'Otford', 'Thirroul', 'Helensburgh', 'Coalcliff', 'Scarborough'
     ],
-    holdingSections: ['627', '632-629', '640-633', '642'] 
+    holdingSections: {
+      Up: ['628', '626', '624', '622'],
+      Down: ['653', '658', '660']
+    },
+    approachSections: {
+      Up: ['616', '619', '622', '624', '626', '628'],
+      Down: ['665', '667', '647', '645', '660', '651', '658']
+    },
+    approachStationPrefixes: {
+      Up: 'THRL',
+      Down: 'OTFD'
+    },
+    exitSections: {
+      Up: ['645', '647', '665', '667', '660', '651', '658'],
+      Down: ['626', '624', '622', '619', '616']
+    },
+    exitStationPrefixes: ['OTFD', 'HELS']
+  },
+  {
+    id: 'wollongong_south',
+    name: 'Wollongong South',
+    routeLabel: 'Coniston ↔ Unanderra North',
+    stops: [
+      { id: '2500371', name: 'Coniston', platform: '1', direction: 'Up' },
+      { id: '2500372', name: 'Coniston', platform: '2', direction: 'Down' },
+      { id: '2526171', name: 'Unanderra', platform: '1', direction: 'Up' },
+      { id: '2526172', name: 'Unanderra', platform: '2', direction: 'Down' },
+    ],
+    singleLineSections: [
+      'WOLL-408-125', 'PKLA-110', 'PKLA-86-83'
+    ],
+    waitingSections: [
+      'WOLL-440-435', 'WOLL-114', 'PKLA-27', 'PKLA-24', 'Coniston', 'Unanderra', 'Wollongong'
+    ],
+    holdingSections: {
+      Up: ['PKLA-110'],
+      Down: ['WOLL-408-125']
+    },
+    approachSections: {
+      Up: ['PKLA-27', 'PKLA-24'],
+      Down: ['WOLL-440-435', 'WOLL-114']
+    },
+    approachStationPrefixes: {
+      Up: 'DAPTO',
+      Down: 'WOLL'
+    },
+    exitSections: {
+      Up: ['WOLL-440-435', 'WOLL-114'],
+      Down: ['PKLA-27', 'PKLA-24']
+    },
+    exitStationPrefixes: ['DAPTO', 'WOLL']
   }
 ];
 
@@ -112,11 +166,11 @@ export const Crossings: React.FC = () => {
       const needsFastPolling = trackData.some(t => {
         const dir = inferDirection(t.runNumber, t.headsign);
         const section = t.section || '';
-        const isInSingleLine = ['627', '632', '629', '640', '633', '642'].some(s => matchesSection(section, s));
+        const isInSingleLine = selectedPanel.singleLineSections.some(s => matchesSection(section, s));
         if (isInSingleLine) return true;
 
-        const isCriticalDown = ['647', '645', '660', '653', '658', '651', '628', '626', '624', '622', '621', '619'].some(s => matchesSection(section, s));
-        const isCriticalUp = ['621', '619', '622', '624', '626', '628', '645', '647', '660', '653', '658', '651'].some(s => matchesSection(section, s));
+        const isCriticalDown = selectedPanel.approachSections.Down.some(s => matchesSection(section, s));
+        const isCriticalUp = selectedPanel.approachSections.Up.some(s => matchesSection(section, s));
 
         if (dir === 'Down' && isCriticalDown) return true;
         if (dir === 'Up' && isCriticalUp) return true;
@@ -128,6 +182,10 @@ export const Crossings: React.FC = () => {
       const departuresResults = results;
       const trainMap = new Map<string, any>();
 
+      // Get entry/exit station names from stops config
+      const downEntry = selectedPanel.stops.find(s => s.direction === 'Down')?.name || '';
+      const upEntry = selectedPanel.stops.find(s => s.direction === 'Up')?.name || '';
+
       departuresResults.forEach((res, i) => {
         const currentStop = selectedPanel.stops[i];
         res.departures.forEach((dep: any) => {
@@ -136,8 +194,8 @@ export const Crossings: React.FC = () => {
 
           const direction = inferDirection(runId, dep.headsign);
           const isUp = direction === 'Up';
-          const entryStationName = isUp ? 'Scarborough' : 'Coalcliff';
-          const exitStationName = isUp ? 'Coalcliff' : 'Scarborough';
+          const entryStationName = isUp ? upEntry : downEntry;
+          const exitStationName = isUp ? downEntry : upEntry;
 
           if (!trainMap.has(runId)) {
             const trackInfo = trackData.find(t => t.runNumber === runId);
@@ -186,14 +244,17 @@ export const Crossings: React.FC = () => {
       trackData.forEach(track => {
         if (!trainMap.has(track.runNumber)) {
           const direction = inferDirection(track.runNumber, track.headsign);
-          const isInSingleLine = selectedPanel.singleLineSections.some(s => track.section.includes(s));
+          const isInSingleLine = selectedPanel.singleLineSections.some(s => matchesSection(track.section, s));
           const isInWaiting = selectedPanel.waitingSections.some(s => track.section.includes(s));
-          const hasStationPrefix = ['OTFD', 'THRL', 'COAL', 'HELS'].some(p => track.section.startsWith(p));
+          const hasStationPrefix = [...Object.values(selectedPanel.approachStationPrefixes), ...selectedPanel.exitStationPrefixes].some(p => track.section.startsWith(p));
           
           if (!isInSingleLine && !isInWaiting && !hasStationPrefix) return; 
 
           const isFreight = isFreightRun(track.runNumber);
           const isSCO = track.runNumber.startsWith('C');
+
+          const entryStationName = direction === 'Up' ? upEntry : downEntry;
+          const exitStationName = direction === 'Up' ? downEntry : upEntry;
 
           trainMap.set(track.runNumber, {
             tripId: track.tripId,
@@ -201,8 +262,8 @@ export const Crossings: React.FC = () => {
             direction,
             entryTime: track.timestamp + (isInSingleLine ? 0 : 300000), 
             exitTime: track.timestamp + 900000, 
-            entryStation: direction === 'Up' ? 'Scarborough' : 'Coalcliff',
-            exitStation: direction === 'Up' ? 'Coalcliff' : 'Scarborough',
+            entryStation: entryStationName,
+            exitStation: exitStationName,
             entryPlatform: isFreight ? 'F' : '--',
             onEntryBoard: false,
             onExitBoard: true,
@@ -217,9 +278,9 @@ export const Crossings: React.FC = () => {
 
       const merged = Array.from(trainMap.values()).map(t => {
         const physicalSingleLine = t.trackSection && (
-          ['627', '632', '629', '640', '633', '642'].some(s => matchesSection(t.trackSection, s)) ||
-          // Include logical Down entry points as physical single line for layout consistency
-          (t.direction === 'Down' && (matchesSection(t.trackSection, '645') || matchesSection(t.trackSection, '647')))
+          selectedPanel.singleLineSections.some(s => matchesSection(t.trackSection, s)) ||
+          // Include logical Down entry points as physical single line for layout consistency (specific to North)
+          (selectedPanel.id === 'wollongong_north' && t.direction === 'Down' && (matchesSection(t.trackSection, '645') || matchesSection(t.trackSection, '647')))
         );
         const isKnownTrackSection = t.trackSection && selectedPanel.waitingSections.some(s => t.trackSection.includes(s));
         const isSiding = t.trackSection && (t.trackSection.includes('637') || t.trackSection.includes('654'));
@@ -237,17 +298,16 @@ export const Crossings: React.FC = () => {
       const nowTs = Date.now();
       const filtered = merged.filter(t => {
         // Filter out 'K' trains as they typically terminate at Thirroul and don't cross to Coalcliff
-        if (t.runNumber.startsWith('K')) return false;
+        if (selectedPanel.id === 'wollongong_north' && t.runNumber.startsWith('K')) return false;
 
         const isPastCrossing = t.trackSection && (
           (t.direction === 'Up' && (
-            t.trackSection.startsWith('OTFD') || t.trackSection.startsWith('HELS') ||
-            t.trackSection === 'Otford' || t.trackSection === 'Helensburgh' ||
-            ['645', '647', '665', '667', '660', '651', '658'].some(s => t.trackSection.includes(s))
+            selectedPanel.exitStationPrefixes.some(p => t.trackSection.startsWith(p)) ||
+            selectedPanel.exitSections.Up.some(s => matchesSection(t.trackSection, s))
           )) ||
           (t.direction === 'Down' && (
-            t.trackSection.startsWith('THRL') || t.trackSection === 'Thirroul' ||
-            ['626', '624', '622', '619', '616'].some(s => t.trackSection.includes(s))
+            selectedPanel.exitStationPrefixes.some(p => t.trackSection.startsWith(p)) ||
+            selectedPanel.exitSections.Down.some(s => matchesSection(t.trackSection, s))
           ))
         );
         const hasExited = t.onExitBoard && !t.physicalSingleLine && (isPastCrossing || (t.exitTime && t.exitTime < nowTs - 30000));
@@ -270,7 +330,7 @@ export const Crossings: React.FC = () => {
 
   const getStatus = (train: any, idx: number, seq: any[], now: number) => {
     const sectionOccupied = seq.some(t => t.physicalSingleLine && !t.isSiding && !t.isRefuge);
-    const isLogicalDownEntry = train.direction === 'Down' && !sectionOccupied && (train.trackSection?.includes('645') || train.trackSection?.includes('647'));
+    const isLogicalDownEntry = selectedPanel.id === 'wollongong_north' && train.direction === 'Down' && !sectionOccupied && (train.trackSection?.includes('645') || train.trackSection?.includes('647'));
 
     if (train.physicalSingleLine || isLogicalDownEntry) {
       if (train.isSiding) return { label: 'IN SIDING', class: 'status-waiting' };
@@ -279,8 +339,8 @@ export const Crossings: React.FC = () => {
     }
 
     const isAtHoldingPoint = train.trackSection && (
-      (train.direction === 'Up' && (['628', '626', '624', '622'].some(s => matchesSection(train.trackSection, s)))) ||
-      (train.direction === 'Down' && (['653', '658', '660'].some(s => matchesSection(train.trackSection, s))))
+      (train.direction === 'Up' && (selectedPanel.holdingSections.Up.some(s => matchesSection(train.trackSection, s)))) ||
+      (train.direction === 'Down' && (selectedPanel.holdingSections.Down.some(s => matchesSection(train.trackSection, s))))
     );
 
     const isAtPlatform = (train.onEntryBoard && train.entryTime && (train.entryTime <= now + 60000) && (isAtHoldingPoint || train.trackSection?.includes(train.entryStation))) || isAtHoldingPoint;
@@ -291,17 +351,25 @@ export const Crossings: React.FC = () => {
     if (sectionMatch) {
       const prefix = sectionMatch[1];
       const num = parseInt(sectionMatch[2]);
-      if (train.direction === 'Down' && prefix === 'OTFD' && num <= 699) inApproachRange = true;
-      if (train.direction === 'Up' && prefix === 'THRL' && num >= 598) inApproachRange = true;
-      if (prefix === 'COAL') {
-        if (train.direction === 'Up' && ['616', '619', '622', '624', '626', '628'].some(s => train.trackSection.includes(s))) inApproachRange = true;
-        if (train.direction === 'Down' && ['665', '667', '647', '645', '660', '651', '658'].some(s => train.trackSection.includes(s))) inApproachRange = true;
+      
+      if (selectedPanel.id === 'wollongong_north') {
+        if (train.direction === 'Down' && prefix === 'OTFD' && num <= 699) inApproachRange = true;
+        if (train.direction === 'Up' && prefix === 'THRL' && num >= 598) inApproachRange = true;
       }
+
+      if (train.direction === 'Up' && selectedPanel.approachSections.Up.some(s => matchesSection(train.trackSection, s))) inApproachRange = true;
+      if (train.direction === 'Down' && selectedPanel.approachSections.Down.some(s => matchesSection(train.trackSection, s))) inApproachRange = true;
+      
     } else if (train.trackSection) {
-      if (train.direction === 'Down' && train.trackSection === 'Otford') inApproachRange = true;
-      if (train.direction === 'Up' && train.trackSection === 'Thirroul') inApproachRange = true;
+      if (train.direction === 'Down' && train.trackSection === selectedPanel.stops.find(s => s.direction === 'Down')?.name) inApproachRange = true;
+      if (train.direction === 'Up' && train.trackSection === selectedPanel.stops.find(s => s.direction === 'Up')?.name) inApproachRange = true;
+      
+      // Additional check for approach station prefix
+      if (train.direction === 'Down' && train.trackSection.startsWith(selectedPanel.approachStationPrefixes.Down)) inApproachRange = true;
+      if (train.direction === 'Up' && train.trackSection.startsWith(selectedPanel.approachStationPrefixes.Up)) inApproachRange = true;
     }
-    const isApproachOnly = train.trackSection && (train.trackSection.includes('665') || train.trackSection.includes('667'));
+
+    const isApproachOnly = selectedPanel.id === 'wollongong_north' && train.trackSection && (train.trackSection.includes('665') || train.trackSection.includes('667'));
     const isApproaching = isApproachOnly || inApproachRange;
 
     const conflictingTrain = seq.find(other => 
