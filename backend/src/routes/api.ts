@@ -206,6 +206,19 @@ router.get('/departures/:stopId', async (req, res) => {
         headsign = headsign.replace(/ Station/g, '').replace(/ Platform \d+/g, '');
       }
 
+      // Look for vehicle position to provide current location
+      const vehicle = vehicles.find((v: any) => v.vehicle?.trip?.tripId === targetTripId);
+      let location = null;
+      if (vehicle?.vehicle?.stopId) {
+        const rawLoc = vehicle.vehicle.stopId.split('.').pop();
+        if (/^\d+$/.test(rawLoc)) {
+          const stopInfo = getStopInfo(rawLoc);
+          location = stopInfo?.stop_name ? stopInfo.stop_name.replace(/ Station/g, '') : rawLoc;
+        } else {
+          location = rawLoc;
+        }
+      }
+
       finalDepartures.push({
         tripId: tripIds[0],
         runNumber,
@@ -216,6 +229,7 @@ router.get('/departures/:stopId', async (req, res) => {
         time: timestamp,
         delay: delay,
         isRealtime: isRealtime,
+        trackSection: location,
         stoppingPattern
       });
       }
@@ -274,6 +288,19 @@ router.get('/departures/:stopId', async (req, res) => {
                      (s.departure?.delay !== undefined ? timestamp + (s.departure.delay * 1000) : null)
           }));
 
+          // Look for vehicle position to provide current location
+          const vehicle = vehicles.find((v: any) => v.vehicle?.trip?.tripId === tripId);
+          let location = null;
+          if (vehicle?.vehicle?.stopId) {
+            const rawLoc = vehicle.vehicle.stopId.split('.').pop();
+            if (/^\d+$/.test(rawLoc)) {
+              const stopInfo = getStopInfo(rawLoc);
+              location = stopInfo?.stop_name ? stopInfo.stop_name.replace(/ Station/g, '') : rawLoc;
+            } else {
+              location = rawLoc;
+            }
+          }
+
           finalDepartures.push({
             tripId,
             runNumber,
@@ -284,6 +311,7 @@ router.get('/departures/:stopId', async (req, res) => {
             time: timestamp,
             delay: timeData.delay || 0,
             isRealtime: true,
+            trackSection: location,
             stoppingPattern: rtStoppingPattern
           });
         }

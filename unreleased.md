@@ -1,7 +1,8 @@
 # Unreleased Changes
 
 ### Added
-- Comprehensive run number mapping for South Coast line passenger trains, providing descriptive train types (e.g., Mariyung, Oscar, V Set, Endeavour) and direction-specific configuration based on run number ranges.
+- "Location Not Known" fallback indicator in the 'Crossings' view for trains without active real-time tracking data.
+- Expanded track location visibility in the 'Crossings' view to display current positions (e.g., station names or block IDs) for all tracked services, not just those in granular signalling zones.
 - Support for Heritage Operator Tours (HOT) and Light Locomotives identification (NANN format), mapping operators like 3801 Limited and motive power types (Steam, Diesel, Electric).
 - Detailed Intrastate Freight mapping for the Illawarra region (District 9), identifying operators (Pacific National, QUBE, SSR, etc.), routes (e.g., Illawarra -> Sydney), and direction.
 - Interstate Freight and Passenger mapping (NAAN format) decoding departure day, origin/destination (e.g., Sydney, Melbourne, Perth, South Coast), and service category.
@@ -49,6 +50,8 @@
 - Timezone support for accurate Sydney-based timing.
 
 ### Changed
+- Updated 'Crossings' view to filter out 'K' prefixed services as they typically terminate at Thirroul and do not traverse the single-line section.
+- Refactored the departures API to enrich all services with real-time vehicle location data (track section or station name) when available.
 - Enhanced `/api/track/sc` backend endpoint to enrich real-time vehicle positions with headsigns and directions from the GTFS schedule.
 - Refactored freight identification and direction tracking in 'Crossings' view to use explicit patterns (MC5-series, 9-series, and directional suffixes like WB/BW) as the primary identification method.
 - Refined the "In Section" status to strictly apply only to the physical single-track blocks (642, 640-633, 632-629, 627) between Scarborough and Coalcliff.
@@ -65,6 +68,7 @@
 - Grouped network alerts by line for better organization.
 
 ### Fixed
+- Resolved false "DECISION NEEDED" alerts in the 'Crossings' view by improving exit-range filtering to support both signalling block IDs and station name locations.
 - Resolved TypeScript compilation errors in 'Crossings' view by removing unused parameters in direction inference logic.
 - Corrected freight train identification patterns for Up/Down directions, including 4-digit 9-series (49xx) for Down freight and precise directional codes (e.g., 1WB7) for Up freight.
 - Fixed run number extraction for non-timetabled services, ensuring IDs like "NonTimetabled.MC52" correctly display as "MC52" in the tracking queue.

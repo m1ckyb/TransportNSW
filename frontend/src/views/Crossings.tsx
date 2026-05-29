@@ -27,7 +27,8 @@ const PANELS: CrossingPanel[] = [
       '627', '632-629', '640-633', '642'
     ],
     waitingSections: [
-      '624-621', '622-619', '628', '626', '631-634', '637', '654', '643', '656', '665', '667', '647', '645', '660-653', '651-658', 'OTFD', 'THRL', 'HELS'
+      '624-621', '622-619', '628', '626', '631-634', '637', '654', '643', '656', '665', '667', '647', '645', '660-653', '651-658', 'OTFD', 'THRL', 'HELS',
+      'Otford', 'Thirroul', 'Helensburgh', 'Coalcliff', 'Scarborough'
     ],
     holdingSections: ['627', '632-629', '640-633', '642'] 
   }
@@ -144,7 +145,7 @@ export const Crossings: React.FC = () => {
               onEntryBoard: false,
               onExitBoard: false,
               isRealtime: !!dep.isRealtime,
-              trackSection: trackInfo?.section || null,
+              trackSection: trackInfo?.section || dep.trackSection || null,
               isFreight: isFreightRun(runId),
               entryDelay: 0,
               exitDelay: 0
@@ -229,13 +230,17 @@ export const Crossings: React.FC = () => {
 
       const nowTs = Date.now();
       const filtered = merged.filter(t => {
+        // Filter out 'K' trains as they typically terminate at Thirroul and don't cross to Coalcliff
+        if (t.runNumber.startsWith('K')) return false;
+
         const isPastCrossing = t.trackSection && (
           (t.direction === 'Up' && (
             t.trackSection.startsWith('OTFD') || t.trackSection.startsWith('HELS') ||
+            t.trackSection === 'Otford' || t.trackSection === 'Helensburgh' ||
             ['645', '647', '665', '667', '660', '651', '658'].some(s => t.trackSection.includes(s))
           )) ||
           (t.direction === 'Down' && (
-            t.trackSection.startsWith('THRL') || 
+            t.trackSection.startsWith('THRL') || t.trackSection === 'Thirroul' ||
             ['626', '624', '622', '619', '616'].some(s => t.trackSection.includes(s))
           ))
         );
@@ -286,6 +291,9 @@ export const Crossings: React.FC = () => {
         if (train.direction === 'Up' && ['616', '619', '622', '624', '626', '628'].some(s => train.trackSection.includes(s))) inApproachRange = true;
         if (train.direction === 'Down' && ['665', '667', '647', '645', '660', '651', '658'].some(s => train.trackSection.includes(s))) inApproachRange = true;
       }
+    } else if (train.trackSection) {
+      if (train.direction === 'Down' && train.trackSection === 'Otford') inApproachRange = true;
+      if (train.direction === 'Up' && train.trackSection === 'Thirroul') inApproachRange = true;
     }
     const isApproachOnly = train.trackSection && (train.trackSection.includes('665') || train.trackSection.includes('667'));
     const isApproaching = isApproachOnly || inApproachRange;
@@ -365,7 +373,11 @@ export const Crossings: React.FC = () => {
                     <span className={`route-pill ${train.isFreight ? 'freight-pill' : ''}`}>{train.routeShortName}</span>
                     <span className="run-id">{train.runNumber}{train.isRealtime && <span className="live-dot"></span>}</span>
                     <div className={`status-badge ${status.class}`}>{status.label}</div>
-                    {train.trackSection && <span className="track-section-badge">{train.trackSection}</span>}
+                    {train.trackSection ? (
+                      <span className="track-section-badge">{train.trackSection}</span>
+                    ) : (
+                      <span className="track-section-badge unknown-loc">Location Not Known</span>
+                    )}
                   </div>
                   <div className="dest-label">{train.isFreight ? 'Freight Service' : `to ${formatStopName(train.headsign, true)}`}</div>
                 </div>
