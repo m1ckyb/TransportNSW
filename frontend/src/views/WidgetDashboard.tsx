@@ -109,8 +109,12 @@ export const WidgetDashboard: React.FC = () => {
                   <div key={`${w.stopId}-${train.tripId}-${idx}`} className={`train-row ${idx === 0 ? 'primary' : 'secondary'}`}>
                     <div className="train-main-info">
                       <div className="route-and-dest">
-                        <span className="route-pill">{train.routeShortName}</span>
-                        <span className="dest-text">{formatStopName(train.headsign, true)}</span>
+                        {train.isEmpty ? (
+                          <span className="route-pill status-waiting empty-badge-pill">EMPTY</span>
+                        ) : (
+                          <span className="route-pill">{train.routeShortName}</span>
+                        )}
+                        <span className="dest-text">{train.isEmpty ? 'Empty Service' : formatStopName(train.headsign, true)}</span>
                         {train.isRealtime && <span className="live-dot" title="Live"></span>}
                       </div>
                       <div className="secondary-info">
