@@ -343,7 +343,7 @@ export const Crossings: React.FC = () => {
   useEffect(() => {
     const handleVisibilityChange = () => { if (document.visibilityState === 'visible') fetchData(); };
     fetchData();
-    const intervalTime = fastPolling ? 15000 : 30000;
+    const intervalTime = fastPolling ? 10000 : 30000;
     const interval = setInterval(() => { if (document.visibilityState === 'visible') fetchData(); }, intervalTime);
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => { clearInterval(interval); document.removeEventListener('visibilitychange', handleVisibilityChange); };
@@ -363,7 +363,7 @@ export const Crossings: React.FC = () => {
           </div>
           <div className="header-right-meta">
             {lastUpdated && <span className="last-updated-tag">UPDATED: {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</span>}
-            <span className={`poll-status ${fastPolling ? 'fast' : ''}`}>{fastPolling ? 'FAST (15s)' : 'NORMAL (30s)'}</span>
+            <span className={`poll-status ${fastPolling ? 'fast' : ''}`}>{fastPolling ? 'FAST (10s)' : 'NORMAL (30s)'}</span>
             <button className={`refresh-btn ${loading ? 'spinning' : ''}`} onClick={fetchData} disabled={loading}><RefreshCw size={18} /></button>
           </div>
         </div>
