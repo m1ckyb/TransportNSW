@@ -14,7 +14,7 @@ interface CrossingPanel {
   approachSections: { Down: string[]; Up: string[] };
   approachStationPrefixes: { Down: string; Up: string };
   exitSections: { Down: string[]; Up: string[] };
-  exitStationPrefixes: string[];
+  exitStationPrefixes: { Down: string[]; Up: string[] };
 }
 
 const PANELS: CrossingPanel[] = [
@@ -34,7 +34,7 @@ const PANELS: CrossingPanel[] = [
     ],
     waitingSections: [
       '624-621', '622-619', '628', '626', '631-634', '637', '654', '643', '656', '665', '667', '647', '645', '660-653', '651-658', 'OTFD', 'THRL', 'HELS',
-      'Otford', 'Thirroul', 'Helensburgh', 'Coalcliff', 'Scarborough'
+      'Otford', 'Thirroul', 'Helensburgh', 'Coalcliff', 'Scarborough', 'Wollongong'
     ],
     holdingSections: {
       Up: ['628', '626', '624', '622'],
@@ -52,7 +52,10 @@ const PANELS: CrossingPanel[] = [
       Up: ['645', '647', '665', '667', '660', '651', '658'],
       Down: ['626', '624', '622', '619', '616']
     },
-    exitStationPrefixes: ['OTFD', 'HELS']
+    exitStationPrefixes: {
+      Up: ['OTFD', 'HELS', 'Otford', 'Helensburgh'],
+      Down: ['THRL', 'WOLL', 'Thirroul', 'Wollongong']
+    }
   },
   {
     id: 'wollongong_south',
@@ -87,7 +90,10 @@ const PANELS: CrossingPanel[] = [
       Up: ['WOLL-406-121', 'WOLL-408-125'],
       Down: ['UNAN-1016', 'UNAN-1018']
     },
-    exitStationPrefixes: ['DAPTO', 'WOLL']
+    exitStationPrefixes: {
+      Up: ['WOLL', 'Wollongong'],
+      Down: ['DAPTO', 'KIAMA', 'Dapto', 'Kiama']
+    }
   }
 ];
 
@@ -245,7 +251,7 @@ export const Crossings: React.FC = () => {
           const direction = inferDirection(track.runNumber, track.headsign);
           const isInSingleLine = selectedPanel.singleLineSections.some(s => matchesSection(track.section, s));
           const isInWaiting = selectedPanel.waitingSections.some(s => track.section.includes(s));
-          const hasStationPrefix = [...Object.values(selectedPanel.approachStationPrefixes), ...selectedPanel.exitStationPrefixes].some(p => track.section.startsWith(p));
+          const hasStationPrefix = [selectedPanel.approachStationPrefixes.Down, selectedPanel.approachStationPrefixes.Up, ...selectedPanel.exitStationPrefixes.Down, ...selectedPanel.exitStationPrefixes.Up].some(p => track.section.startsWith(p));
           
           if (!isInSingleLine && !isInWaiting && !hasStationPrefix) return; 
 
@@ -316,11 +322,11 @@ export const Crossings: React.FC = () => {
 
         const isPastCrossing = t.trackSection && (
           (t.direction === 'Up' && (
-            selectedPanel.exitStationPrefixes.some(p => t.trackSection.startsWith(p)) ||
+            selectedPanel.exitStationPrefixes.Up.some(p => t.trackSection.startsWith(p)) ||
             selectedPanel.exitSections.Up.some(s => matchesSection(t.trackSection, s))
           )) ||
           (t.direction === 'Down' && (
-            selectedPanel.exitStationPrefixes.some(p => t.trackSection.startsWith(p)) ||
+            selectedPanel.exitStationPrefixes.Down.some(p => t.trackSection.startsWith(p)) ||
             selectedPanel.exitSections.Down.some(s => matchesSection(t.trackSection, s))
           ))
         );
