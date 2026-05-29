@@ -331,7 +331,11 @@ export const Crossings: React.FC = () => {
       filtered.sort((a, b) => {
         if (a.physicalSingleLine && !b.physicalSingleLine) return -1;
         if (!a.physicalSingleLine && b.physicalSingleLine) return 1;
-        return (a.entryTime || 0) - (b.entryTime || 0);
+        
+        const timeA = a.entryTime || (a.exitTime ? a.exitTime - 300000 : null) || (nowTs + 86400000);
+        const timeB = b.entryTime || (b.exitTime ? b.exitTime - 300000 : null) || (nowTs + 86400000);
+        
+        return timeA - timeB;
       });
 
       setSequence(filtered.slice(0, 12));
