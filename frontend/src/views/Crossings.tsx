@@ -283,7 +283,7 @@ export const Crossings: React.FC = () => {
       (train.direction === 'Down' && (['653', '658', '660'].some(s => matchesSection(train.trackSection, s))))
     );
 
-    const isAtPlatform = (train.onEntryBoard && train.entryTime && (train.entryTime <= now + 60000)) || isAtHoldingPoint;
+    const isAtPlatform = (train.onEntryBoard && train.entryTime && (train.entryTime <= now + 60000) && (isAtHoldingPoint || train.trackSection?.includes(train.entryStation))) || isAtHoldingPoint;
     
     // Detect Approach Range
     const sectionMatch = train.trackSection?.match(/([A-Z]+)-(\d+)/);
