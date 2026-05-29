@@ -195,14 +195,18 @@ router.get('/departures/:stopId', async (req, res) => {
 
       // Headsign Fallback (use last stop if missing or generic 'Empty Train')
       let headsign = sch.trip_headsign;
-      if (!headsign || headsign.toLowerCase().includes('empty train') || headsign.toLowerCase().includes('empty coaching stock')) {
+      let isEmpty = false;
+      if (headsign && (headsign.toLowerCase().includes('empty train') || headsign.toLowerCase().includes('empty coaching stock'))) {
+        isEmpty = true;
+        headsign = 'Empty Service';
+      } else if (!headsign) {
         if (stoppingPattern.length > 0) {
           headsign = stoppingPattern[stoppingPattern.length - 1].stopName;
         }
       }
 
       // Clean up headsign (remove ' Station' and ' Platform X')
-      if (headsign) {
+      if (headsign && !isEmpty) {
         headsign = headsign.replace(/ Station/g, '').replace(/ Platform \d+/g, '');
       }
 
@@ -230,6 +234,7 @@ router.get('/departures/:stopId', async (req, res) => {
         delay: delay,
         isRealtime: isRealtime,
         trackSection: location,
+        isEmpty: isEmpty,
         stoppingPattern
       });
       }
@@ -260,16 +265,13 @@ router.get('/departures/:stopId', async (req, res) => {
           let setInfo = getSetInfo(tripId, entity.tripUpdate.vehicle?.label);
 
           let headsign = tripInfo?.trip_headsign || 'Train';
-          // ... headsign fallback logic ...
-          if (headsign.toLowerCase().includes('empty train')) {
-             const lastStop = entity.tripUpdate.stopTimeUpdate[entity.tripUpdate.stopTimeUpdate.length - 1];
-             if (lastStop) {
-                const names = getStopNames([lastStop.stopId]);
-                headsign = names[lastStop.stopId] || headsign;
-             }
+          let isEmpty = false;
+          if (headsign.toLowerCase().includes('empty train') || headsign.toLowerCase().includes('empty coaching stock')) {
+             isEmpty = true;
+             headsign = 'Empty Service';
           }
 
-          if (headsign) {
+          if (headsign && !isEmpty) {
             headsign = headsign.replace(/ Station/g, '').replace(/ Platform \d+/g, '');
           }
 
@@ -312,6 +314,7 @@ router.get('/departures/:stopId', async (req, res) => {
             delay: timeData.delay || 0,
             isRealtime: true,
             trackSection: location,
+            isEmpty: isEmpty,
             stoppingPattern: rtStoppingPattern
           });
         }

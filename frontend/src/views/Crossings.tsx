@@ -372,7 +372,7 @@ export const Crossings: React.FC = () => {
             const status = getStatus(train, idx, sequence, now);
             const isConflict = (status as any).isConflict;
             return (
-              <div key={`${train.tripId}-${idx}`} className={`queue-item ${train.direction.toLowerCase()} ${train.physicalSingleLine ? 'highlight-active' : ''} ${isConflict ? 'highlight-conflict' : ''} ${train.isFreight ? 'freight-item' : ''}`}>
+              <div key={`${train.tripId}-${idx}`} className={`queue-item ${train.direction.toLowerCase()} ${train.physicalSingleLine ? 'highlight-active' : ''} ${isConflict ? 'highlight-conflict' : ''} ${train.isFreight ? 'freight-item' : ''} ${train.isEmpty ? 'empty-item' : ''}`}>
                 <div className="queue-pos">{idx + 1}</div>
                 <div className="queue-direction">{train.direction === 'Down' ? <ArrowDown size={24} /> : <ArrowUp size={24} />}<span className="dir-label">{train.direction}</span></div>
                 <div className="queue-main">
@@ -380,13 +380,14 @@ export const Crossings: React.FC = () => {
                     <span className={`route-pill ${train.isFreight ? 'freight-pill' : ''}`}>{train.routeShortName}</span>
                     <span className="run-id">{train.runNumber}{train.isRealtime && <span className="live-dot"></span>}</span>
                     <div className={`status-badge ${status.class}`}>{status.label}</div>
+                    {train.isEmpty && <div className="status-badge status-waiting empty-badge">EMPTY</div>}
                     {train.trackSection ? (
                       <span className="track-section-badge">{train.trackSection}</span>
                     ) : (
                       <span className="track-section-badge unknown-loc">Location Not Known</span>
                     )}
                   </div>
-                  <div className="dest-label">{train.isFreight ? 'Freight Service' : `to ${formatStopName(train.headsign, true)}`}</div>
+                  <div className="dest-label">{train.isFreight ? 'Freight Service' : (train.isEmpty ? 'Empty Service' : `to ${formatStopName(train.headsign, true)}`)}</div>
                 </div>
                 <div className="queue-section-times">
                   <div className="time-block entry">
