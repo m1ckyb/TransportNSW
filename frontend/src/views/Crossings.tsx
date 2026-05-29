@@ -7,6 +7,7 @@ interface CrossingPanel {
   name: string;
   routeLabel: string;
   stops: { id: string; name: string; platform: string; direction: 'Down' | 'Up' }[];
+  entryStations: { Down: string; Up: string };
   singleLineSections: string[];
   waitingSections: string[];
   holdingSections: { Down: string[]; Up: string[] };
@@ -27,6 +28,7 @@ const PANELS: CrossingPanel[] = [
       { id: '2515131', name: 'Scarborough', platform: '1', direction: 'Up' },
       { id: '2515132', name: 'Scarborough', platform: '2', direction: 'Down' },
     ],
+    entryStations: { Down: 'Coalcliff', Up: 'Scarborough' },
     singleLineSections: [
       '627', '632-629', '640-633', '642'
     ],
@@ -62,6 +64,7 @@ const PANELS: CrossingPanel[] = [
       { id: '2526171', name: 'Unanderra', platform: '2', direction: 'Up' },
       { id: '2526172', name: 'Unanderra', platform: '1', direction: 'Down' },
     ],
+    entryStations: { Down: 'Coniston', Up: 'Unanderra' },
     singleLineSections: [
       'WOLL-112', 'WOLL-1007'
     ],
@@ -182,10 +185,6 @@ export const Crossings: React.FC = () => {
       const departuresResults = results;
       const trainMap = new Map<string, any>();
 
-      // Get entry/exit station names from stops config
-      const downEntry = selectedPanel.stops.find(s => s.direction === 'Down')?.name || '';
-      const upEntry = selectedPanel.stops.find(s => s.direction === 'Up')?.name || '';
-
       departuresResults.forEach((res, i) => {
         const currentStop = selectedPanel.stops[i];
         res.departures.forEach((dep: any) => {
@@ -194,8 +193,8 @@ export const Crossings: React.FC = () => {
 
           const direction = inferDirection(runId, dep.headsign);
           const isUp = direction === 'Up';
-          const entryStationName = isUp ? upEntry : downEntry;
-          const exitStationName = isUp ? downEntry : upEntry;
+          const entryStationName = selectedPanel.entryStations[direction];
+          const exitStationName = selectedPanel.entryStations[isUp ? 'Down' : 'Up'];
 
           if (!trainMap.has(runId)) {
             const trackInfo = trackData.find(t => t.runNumber === runId);
@@ -253,8 +252,8 @@ export const Crossings: React.FC = () => {
           const isFreight = isFreightRun(track.runNumber);
           const isSCO = track.runNumber.startsWith('C');
 
-          const entryStationName = direction === 'Up' ? upEntry : downEntry;
-          const exitStationName = direction === 'Up' ? downEntry : upEntry;
+          const entryStationName = selectedPanel.entryStations[direction];
+          const exitStationName = selectedPanel.entryStations[direction === 'Up' ? 'Down' : 'Up'];
 
           trainMap.set(track.runNumber, {
             tripId: track.tripId,
