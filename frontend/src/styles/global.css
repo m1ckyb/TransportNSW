@@ -961,6 +961,32 @@ body {
   color: var(--text-primary);
 }
 
+.val-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.delay-tag {
+  font-size: 0.85rem;
+  font-weight: 800;
+  padding: 0 0.3rem;
+  border-radius: 0.25rem;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.delay-tag.delay-green {
+  color: #10b981;
+}
+
+.delay-tag.delay-orange {
+  color: #f59e0b;
+}
+
+.delay-tag.delay-red {
+  color: #ef4444;
+}
+
 .due-val {
   font-size: 0.9rem;
   font-weight: 700;

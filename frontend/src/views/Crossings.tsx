@@ -169,7 +169,9 @@ export const Crossings: React.FC = () => {
               onExitBoard: false,
               isRealtime: !!dep.isRealtime,
               trackSection: trackInfo?.section || null,
-              isFreight: isFreightRun(runId)
+              isFreight: isFreightRun(runId),
+              entryDelay: 0,
+              exitDelay: 0
             });
           }
 
@@ -178,15 +180,21 @@ export const Crossings: React.FC = () => {
             train.onEntryBoard = true;
             train.entryTime = dep.time;
             train.entryPlatform = currentStop.platform;
+            train.entryDelay = dep.delay || 0;
           } else if (currentStop.name === exitStationName) {
             train.onExitBoard = true;
             train.exitTime = dep.time;
+            train.exitDelay = dep.delay || 0;
           }
           if (dep.isRealtime) train.isRealtime = true;
 
           if (!train.exitTime) {
             const exitStop = dep.stoppingPattern?.find((s: any) => s.stopName.includes(exitStationName));
-            if (exitStop) train.exitTime = exitStop.arrival || exitStop.departure;
+            if (exitStop) {
+              train.exitTime = exitStop.arrival || exitStop.departure;
+              // If it's the same trip, assume similar delay if not explicitly provided
+              if (train.exitDelay === 0) train.exitDelay = dep.delay || 0;
+            }
           }
         });
       });
@@ -380,9 +388,35 @@ export const Crossings: React.FC = () => {
                   <div className="dest-label">{train.isFreight ? 'Freight Service' : `to ${formatStopName(train.headsign, true)}`}</div>
                 </div>
                 <div className="queue-section-times">
-                  <div className="time-block entry"><span className="label">Entry ({train.entryStation})</span><span className="val">{(train.onEntryBoard || (train.isFreight && train.entryTime && train.entryTime > now)) && train.entryTime ? new Date(train.entryTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : (train.isRealtime ? 'Passed' : '--:--')}</span></div>
+                  <div className="time-block entry">
+                    <span className="label">Entry ({train.entryStation})</span>
+                    <span className="val-container">
+                      <span className="val">
+                        {(train.onEntryBoard || (train.isFreight && train.entryTime && train.entryTime > now)) && train.entryTime 
+                          ? new Date(train.entryTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) 
+                          : (train.isRealtime ? 'Passed' : '--:--')}
+                      </span>
+                      {train.isRealtime && train.entryDelay !== undefined && Math.floor(train.entryDelay / 60) > 0 && (
+                        <span className={`delay-tag ${Math.floor(train.entryDelay / 60) >= 5 ? 'delay-red' : Math.floor(train.entryDelay / 60) >= 2 ? 'delay-orange' : 'delay-green'}`}>
+                          ({Math.floor(train.entryDelay / 60)})
+                        </span>
+                      )}
+                    </span>
+                  </div>
                   <div className="time-spacer"><div className="line"></div></div>
-                  <div className="time-block exit"><span className="label">Exit ({train.exitStation})</span><span className="val">{train.exitTime ? new Date(train.exitTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '--:--'}</span></div>
+                  <div className="time-block exit">
+                    <span className="label">Exit ({train.exitStation})</span>
+                    <span className="val-container">
+                      <span className="val">
+                        {train.exitTime ? new Date(train.exitTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '--:--'}
+                      </span>
+                      {train.isRealtime && train.exitDelay !== undefined && Math.floor(train.exitDelay / 60) > 0 && (
+                        <span className={`delay-tag ${Math.floor(train.exitDelay / 60) >= 5 ? 'delay-red' : Math.floor(train.exitDelay / 60) >= 2 ? 'delay-orange' : 'delay-green'}`}>
+                          ({Math.floor(train.exitDelay / 60)})
+                        </span>
+                      )}
+                    </span>
+                  </div>
                 </div>
                 <div className="queue-timing"><div className="due-val">{train.entryTime && train.entryTime > now ? `${Math.max(0, Math.floor((train.entryTime - now) / 60000))} min` : '---'}</div></div>
               </div>
