@@ -129,10 +129,10 @@ const isDownFreight = (run: string) => /^\d9\d{2}$/.test(run) || /^MC\d[02468]$/
 const isFreightRun = (run: string) => isUpFreight(run) || isDownFreight(run);
 
 const inferDirection = (runNumber: string, headsign?: string): 'Up' | 'Down' => {
-  const passInfo = getPassengerInfo(runNumber);
-  if (passInfo) return passInfo.direction;
   if (isUpFreight(runNumber)) return 'Up';
   if (isDownFreight(runNumber)) return 'Down';
+  const passInfo = getPassengerInfo(runNumber);
+  if (passInfo) return passInfo.direction;
   const cleanHeadsign = (headsign || '').toLowerCase();
   const upKeywords = ['central', 'waterfall', 'bondi', 'martin place', 'hurstville', 'cronulla', 'sutherland', 'town hall', 'north sydney', 'museum', 'st james', 'wynyard'];
   const downKeywords = ['kiama', 'port kembla', 'wollongong', 'dapto', 'bomaderry', 'coniston', 'thirroul', 'berry', 'albion park', 'unanderra', 'shellharbour'];
