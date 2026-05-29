@@ -5,6 +5,7 @@ import { RefreshCw, ArrowRightLeft, ArrowDown, ArrowUp } from 'lucide-react';
 interface CrossingPanel {
   id: string;
   name: string;
+  routeLabel: string;
   stops: { id: string; name: string; platform: string; direction: 'Down' | 'Up' }[];
   singleLineSections: string[];
   waitingSections: string[];
@@ -15,6 +16,7 @@ const PANELS: CrossingPanel[] = [
   {
     id: 'wollongong_north',
     name: 'Wollongong North',
+    routeLabel: 'Coalcliff to Scarborough',
     stops: [
       { id: '2508151', name: 'Coalcliff', platform: '1', direction: 'Up' },
       { id: '2508152', name: 'Coalcliff', platform: '2', direction: 'Down' },
@@ -355,7 +357,7 @@ export const Crossings: React.FC = () => {
             <label>Section:</label>
             <select value={selectedPanelId} onChange={(e) => setSelectedPanelId(e.target.value)}>
               {PANELS.map(p => (
-                <option key={p.id} value={p.id}>{p.name}: Coalcliff ↔ Scarborough</option>
+                <option key={p.id} value={p.id}>{p.name}: {p.routeLabel}</option>
               ))}
             </select>
           </div>
@@ -369,7 +371,7 @@ export const Crossings: React.FC = () => {
       <div className="single-line-queue">
         <div className="queue-header">
           <ArrowRightLeft size={20} />
-          <h2>Single Line Entry Sequence</h2>
+          <h2>Single Line: {selectedPanel.routeLabel}</h2>
           <span className="queue-hint">Sorted by predicted entry time</span>
         </div>
         <div className="queue-list">
