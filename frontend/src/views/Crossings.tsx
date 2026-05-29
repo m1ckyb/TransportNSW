@@ -83,6 +83,12 @@ const inferDirection = (runNumber: string, headsign?: string): 'Up' | 'Down' => 
   return 'Down';
 };
 
+const matchesSection = (trackSection: string | null, target: string) => {
+  if (!trackSection) return false;
+  const segments = trackSection.split(/[-.]/);
+  return segments.includes(target);
+};
+
 export const Crossings: React.FC = () => {
   const [selectedPanelId, setSelectedPanelId] = useState(PANELS[0].id);
   const [sequence, setSequence] = useState<any[]>([]);
@@ -105,11 +111,12 @@ export const Crossings: React.FC = () => {
       
       const needsFastPolling = trackData.some(t => {
         const dir = inferDirection(t.runNumber, t.headsign);
-        const isInSingleLine = ['627', '632', '629', '640', '633', '642'].some(s => t.section.includes(s));
+        const section = t.section || '';
+        const isInSingleLine = ['627', '632', '629', '640', '633', '642'].some(s => matchesSection(section, s));
         if (isInSingleLine) return true;
 
-        const isCriticalDown = t.section === 'COAL-645' || t.section === 'COAL-622-619' || t.section === 'COAL-624-621';
-        const isCriticalUp = t.section === 'COAL-628' || t.section === 'COAL-626' || t.section === 'COAL-651-660' || t.section === 'COAL-660-653';
+        const isCriticalDown = ['665', '667', '647', '645'].some(s => matchesSection(section, s));
+        const isCriticalUp = ['628', '626', '653', '658', '660'].some(s => matchesSection(section, s));
 
         if (dir === 'Down' && isCriticalDown) return true;
         if (dir === 'Up' && isCriticalUp) return true;
@@ -210,10 +217,9 @@ export const Crossings: React.FC = () => {
 
       const merged = Array.from(trainMap.values()).map(t => {
         const physicalSingleLine = t.trackSection && (
-          t.trackSection.includes('627') || t.trackSection.includes('632') || t.trackSection.includes('629') ||
-          t.trackSection.includes('640') || t.trackSection.includes('633') || t.trackSection.includes('642') ||
+          ['627', '632', '629', '640', '633', '642'].some(s => matchesSection(t.trackSection, s)) ||
           // Include logical Down entry points as physical single line for layout consistency
-          (t.direction === 'Down' && (t.trackSection.includes('645') || t.trackSection.includes('647')))
+          (t.direction === 'Down' && (matchesSection(t.trackSection, '645') || matchesSection(t.trackSection, '647')))
         );
         const isKnownTrackSection = t.trackSection && selectedPanel.waitingSections.some(s => t.trackSection.includes(s));
         const isSiding = t.trackSection && (t.trackSection.includes('637') || t.trackSection.includes('654'));
@@ -273,8 +279,8 @@ export const Crossings: React.FC = () => {
     }
 
     const isAtHoldingPoint = train.trackSection && (
-      (train.direction === 'Up' && (train.trackSection.includes('628') || train.trackSection.includes('626') || train.trackSection.includes('624') || train.trackSection.includes('622'))) ||
-      (train.direction === 'Down' && (train.trackSection.includes('653') || train.trackSection.includes('658') || train.trackSection.includes('660')))
+      (train.direction === 'Up' && (['628', '626', '624', '622'].some(s => matchesSection(train.trackSection, s)))) ||
+      (train.direction === 'Down' && (['653', '658', '660'].some(s => matchesSection(train.trackSection, s))))
     );
 
     const isAtPlatform = (train.onEntryBoard && train.entryTime && (train.entryTime <= now + 60000)) || isAtHoldingPoint;
@@ -315,12 +321,13 @@ export const Crossings: React.FC = () => {
       return { label: 'WAITING', class: 'status-waiting' };
     }
 
+    if (isApproachOnly) return { label: 'APPROACHING', class: 'status-waiting' };
+
     if (isAtPlatform) return { label: 'AT PLATFORM', class: 'status-waiting' };
-    
+
     const isNext = idx === 0 || (seq[0]?.physicalSingleLine && idx === 1);
     if (isNext) return { label: 'NEXT', class: 'status-next' };
-
-    if (isApproachOnly) return { label: 'APPROACHING', class: 'status-waiting' };
+    
     if (inApproachRange) return { label: 'APPROACHING', class: 'status-approaching' };
     return { label: 'EN ROUTE', class: 'status-approaching' };
   };
