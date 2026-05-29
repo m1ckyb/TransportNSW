@@ -1,6 +1,9 @@
 # Unreleased Changes
 
 ### Added
+- Conflict detection logic in 'Crossings' view to flag potential "DECISION NEEDED" states when opposing trains approach the single line simultaneously.
+- Adaptive polling system in 'Crossings' view, automatically switching to 15s intervals when trains enter critical approach or single-line sections.
+- "Last Updated" timestamp indicators across all real-time views (Dashboard, SigView, Crossings, Parking) to provide visibility into data freshness.
 - Single Line Crossing Tracker (SigView > Crossings) for the Coalcliff-Scarborough bottleneck, utilizing granular signalling block IDs (e.g., 627, 632-629) for high-precision tracking.
 - Intelligent occupancy logic for the single line, distinguishing between "IN SECTION", "WAITING", and "APPROACHING" based on real-time track occupancy and holding points.
 - Freight & Unscheduled service tracking: Integration of real-time vehicle positions to track non-passenger trains (e.g., 9122, MC52) through the monitored single-line sections.
@@ -36,6 +39,7 @@
 - Timezone support for accurate Sydney-based timing.
 
 ### Changed
+- Enhanced `/api/track/sc` backend endpoint to enrich real-time vehicle positions with headsigns and directions from the GTFS schedule.
 - Refactored freight identification and direction tracking in 'Crossings' view to use explicit patterns (MC5-series, 9-series, and directional suffixes like WB/BW) as the primary identification method.
 - Refined the "In Section" status to strictly apply only to the physical single-track blocks (642, 640-633, 632-629, 627) between Scarborough and Coalcliff.
 - Updated tracking logic to force approach sections (665, 667) to always display as "APPROACHING" to prevent premature "WAITING" flags.
@@ -51,6 +55,7 @@
 - Grouped network alerts by line for better organization.
 
 ### Fixed
+- Resolved TypeScript compilation errors in 'Crossings' view by removing unused parameters in direction inference logic.
 - Corrected freight train identification patterns for Up/Down directions, including 4-digit 9-series (49xx) for Down freight and precise directional codes (e.g., 1WB7) for Up freight.
 - Fixed run number extraction for non-timetabled services, ensuring IDs like "NonTimetabled.MC52" correctly display as "MC52" in the tracking queue.
 - Disabled experimental service type classification (Express/All Stations) to maintain UI stability while refining heuristics.
