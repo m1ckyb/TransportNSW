@@ -234,7 +234,9 @@ export const Crossings: React.FC = () => {
       const merged = Array.from(trainMap.values()).map(t => {
         const physicalSingleLine = t.trackSection && (
           t.trackSection.includes('627') || t.trackSection.includes('632') || t.trackSection.includes('629') ||
-          t.trackSection.includes('640') || t.trackSection.includes('633') || t.trackSection.includes('642')
+          t.trackSection.includes('640') || t.trackSection.includes('633') || t.trackSection.includes('642') ||
+          // Include logical Down entry points as physical single line for layout consistency
+          (t.direction === 'Down' && (t.trackSection.includes('645') || t.trackSection.includes('647')))
         );
         const isKnownTrackSection = t.trackSection && selectedPanel.waitingSections.some(s => t.trackSection.includes(s));
         const isSiding = t.trackSection && (t.trackSection.includes('637') || t.trackSection.includes('654'));
@@ -331,7 +333,8 @@ export const Crossings: React.FC = () => {
     }
 
     const isApproachOnly = train.trackSection && (train.trackSection.includes('665') || train.trackSection.includes('667'));
-    if (isApproachOnly || inApproachRange) return { label: 'APPROACHING', class: 'status-approaching' };
+    if (isApproachOnly) return { label: 'APPROACHING', class: 'status-waiting' };
+    if (inApproachRange) return { label: 'APPROACHING', class: 'status-approaching' };
     return { label: 'EN ROUTE', class: 'status-approaching' };
   };
 
