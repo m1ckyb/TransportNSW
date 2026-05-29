@@ -1,6 +1,9 @@
 # Unreleased Changes
 
 ### Added
+- Explicit "Empty Service" (ECS) identification across all real-time views (Crossings, Departures, Dashboard), replacing the route badge with a high-visibility 'EMPTY' pill.
+- Support for multiple dynamic single-line sections in the 'Crossings' view via a UI dropdown.
+- "Wollongong South" single-line tracker (Coniston ↔ Unanderra North), featuring strict traversal validation to automatically exclude diverging Port Kembla branch services.
 - "Location Not Known" fallback indicator in the 'Crossings' view for trains without active real-time tracking data.
 - Expanded track location visibility in the 'Crossings' view to display current positions (e.g., station names or block IDs) for all tracked services, not just those in granular signalling zones.
 - Support for Heritage Operator Tours (HOT) and Light Locomotives identification (NANN format), mapping operators like 3801 Limited and motive power types (Steam, Diesel, Electric).
@@ -50,6 +53,8 @@
 - Timezone support for accurate Sydney-based timing.
 
 ### Changed
+- Expanded 'Fast Mode' (10s polling) triggers across the full monitored mainline territory, while automatically reverting to 30s polling for trains stowed in sidings or refuges to optimize API usage.
+- Improved crossing queue sorting logic to prioritize physical track presence, using delayed exit times as a fallback to prevent distant future trains from incorrectly appearing as 'NEXT'.
 - Updated 'Crossings' view to filter out 'K' prefixed services as they typically terminate at Thirroul and do not traverse the single-line section.
 - Refactored the departures API to enrich all services with real-time vehicle location data (track section or station name) when available.
 - Enhanced `/api/track/sc` backend endpoint to enrich real-time vehicle positions with headsigns and directions from the GTFS schedule.
@@ -68,6 +73,11 @@
 - Grouped network alerts by line for better organization.
 
 ### Fixed
+- Fixed direction inference priority to evaluate non-timetabled freight patterns before passenger heuristics, preventing 4-digit freight trains (e.g., 3964) from being misidentified and filtered out.
+- Updated non-timetabled freight regex (`isUpFreight` / `isDownFreight`) to strictly require the 4-character format (e.g., MC52, MC51) ensuring accurate direction detection based on odd/even numbering.
+- Fixed trains becoming "stuck" in the crossing queue by explicitly separating exit signalling prefixes (e.g., THRL, WOLL) by direction for precise exit detection.
+- Implemented strict segment-based string matching (`matchesSection`) to prevent trains at distant locations (e.g., SM645BER) from falsely triggering 'IN SECTION' or 'WAITING' statuses.
+- Refined the "At Platform" logic to require physical presence at a holding point or station boundary, preventing false platform arrivals for trains still in the distant approach range.
 - Resolved false "DECISION NEEDED" alerts in the 'Crossings' view by improving exit-range filtering to support both signalling block IDs and station name locations.
 - Resolved TypeScript compilation errors in 'Crossings' view by removing unused parameters in direction inference logic.
 - Corrected freight train identification patterns for Up/Down directions, including 4-digit 9-series (49xx) for Down freight and precise directional codes (e.g., 1WB7) for Up freight.
