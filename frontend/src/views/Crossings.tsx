@@ -119,7 +119,7 @@ const getPassengerInfo = (run: string): { direction: 'Up' | 'Down' } | null => {
 };
 
 const isUpFreight = (run: string) => /^MC5\d*[13579]$/.test(run) || /^9\d{3}$/.test(run) || /^\d(WB|WM|MB)\d$/i.test(run);
-const isDownFreight = (run: string) => /^\d9\d{2}$/.test(run) || /^MC5\d*[02468]$/.test(run) || /\d+\s?(BW|MW|BM)\s?\d+/i.test(run);
+const isDownFreight = (run: string) => /^\d9\d{2}$/.test(run) || /^MC5\d*[02468]$/.test(run) || /^MC52$/.test(run) || /\d+\s?(BW|MW|BM)\s?\d+/i.test(run);
 const isFreightRun = (run: string) => isUpFreight(run) || isDownFreight(run);
 
 const inferDirection = (runNumber: string, headsign?: string): 'Up' | 'Down' => {
